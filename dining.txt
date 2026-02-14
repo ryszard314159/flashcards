@@ -1,0 +1,100 @@
+* Dining | Comedor
+A table for two, please. | Una mesa para dos, por favor.
+What do you recommend? | ¿Qué me recomienda?
+I am a vegetarian. | Soy vegetariano.
+Is it very spicy? | ¿Es muy picante?
+Another beer, please. | Otra cerveza, por favor.
+The bill, please. | La cuenta, por favor.
+Is service included? | ¿Está incluido el servicio?
+I have a peanut allergy. | Tengo alergia a los cacahuetes.
+This is delicious! | ¡Esto está delicioso!
+Can I pay with credit card? | ¿Puedo pagar con tarjeta de crédito?
+Do you have a menu in English? | ¿Tiene una carta en inglés?
+We have a reservation at eight. | Tenemos una reserva a las ocho.
+Can we sit outside? | ¿Podemos sentarnos fuera?
+Is there a high chair for the baby? | ¿Hay una trona para el bebé?
+What is the soup of the day? | ¿Cuál es la sopa del día?
+I would like a glass of red wine. | Quisiera una copa de vino tinto.
+A bottle of sparkling water, please. | Una botella de agua con gas, por favor.
+I am allergic to seafood. | Soy alérgico al marisco.
+Does this contain gluten? | ¿Esto contiene gluten?
+I don't eat pork. | No como cerdo.
+Is this dish for sharing? | ¿Este plato es para compartir?
+I’ll have the same as them. | Tomaré lo mismo que ellos.
+I’m still deciding. | Todavía estoy decidiendo.
+We are ready to order. | Estamos listos para pedir.
+Can I have the steak medium-rare? | Quisiera el filete al punto (poco hecho).
+Well done, please. | Muy hecho, por favor.
+Can I have some bread? | ¿Me trae un poco de pan?
+Is there a set menu? | ¿Hay un menú del día?
+What are the ingredients? | ¿Cuáles son los ingredientes?
+Is it fresh? | ¿Es fresco?
+I’ll have the house wine. | Tomaré el vino de la casa.
+Can I have tap water? | ¿Me da agua del grifo?
+No ice, please. | Sin hielo, por favor.
+A little more, please. | Un poco más, por favor.
+That’s enough, thanks. | Es suficiente, gracias.
+Can we have some napkins? | ¿Nos trae unas servilletas?
+The food is cold. | La comida está fría.
+This isn’t what I ordered. | Esto no es lo que he pedido.
+I’m still missing a dish. | Me falta un plato todavía.
+Is it possible to have the sauce on the side? | ¿Puede poner la salsa aparte?
+How is the fish cooked? | ¿Cómo está cocinado el pescado?
+Is it grilled or fried? | ¿Es a la plancha o frito?
+Do you have any vegan options? | ¿Tiene opciones veganas?
+I am lactose intolerant. | Soy intolerante a la lactosa.
+Can I have a coffee? | ¿Me trae un café?
+An espresso, please. | Un café solo, por favor.
+Coffee with milk, please. | Un café con leche, por favor.
+Do you have decaf? | ¿Tiene descafeinado?
+What do you have for dessert? | ¿Qué tiene de postre?
+I’ll have the fruit salad. | Tomaré la macedonia de frutas.
+Is there a bathroom here? | ¿Hay un baño aquí?
+Can we have the check separately? | ¿Podemos pagar por separado?
+Everything was perfect. | Todo estaba perfecto.
+The meat is very tender. | La carne está muy tierna.
+It’s too salty. | Está demasiado salado.
+It’s too sweet. | Está demasiado dulce.
+Can I have a fork? | ¿Me da un tenedor?
+I need a knife and a spoon. | Necesito un cuchillo y una cuchara.
+My glass is dirty. | Mi vaso está sucio.
+Can you bring me a toothpick? | ¿Puede traerme un palillo?
+Is there a smoking area? | ¿Hay una zona para fumadores?
+What is the house specialty? | ¿Cuál es la especialidad de la casa?
+I am full. | Estoy lleno.
+Can I have a doggy bag? | ¿Me lo puede poner para llevar? (para llevar)
+I’d like to speak to the manager. | Me gustaría hablar con el encargado.
+Is the tip included? | ¿La propina está incluida?
+Where is the bar? | ¿Dónde está la barra?
+A pitcher of sangria, please. | Una jarra de sangría, por favor.
+Do you have local craft beer? | ¿Tiene cerveza artesana local?
+I’d like a snack. | Me gustaría picar algo.
+Are the tapas free with drinks? | ¿Las tapas son gratis con la bebida?
+I want to try the paella. | Quiero probar la paella.
+How long will it take? | ¿Cuánto tardará?
+Is there a dress code? | ¿Hay un código de vestimenta?
+Do I need to wear a tie? | ¿Tengo que llevar corbata?
+It is very busy tonight. | Está muy concurrido esta noche.
+Can we sit at the bar? | ¿Podemos sentarnos en la barra?
+The atmosphere is lovely. | El ambiente es encantador.
+Can you recommend a good white wine? | ¿Puede recomendarme un buen vino blanco?
+This is too greasy. | Esto está demasiado grasiento.
+I’d like my eggs scrambled. | Quisiera los huevos revueltos.
+Fried eggs, please. | Huevos fritos, por favor.
+Is there honey for the tea? | ¿Hay miel para el té?
+I’d like some olive oil. | Quisiera un poco de aceite de oliva.
+More vinegar, please. | Más vinagre, por favor.
+The salt and pepper, please. | La sal y la pimienta, por favor.
+Is this table reserved? | ¿Está reservada esta mesa?
+I have a food allergy. | Tengo una alergia alimentaria.
+Is there nuts in this? | ¿Esto lleva frutos secos?
+I am very hungry. | Tengo mucha hambre.
+I am thirsty. | Tengo sed.
+Can I have a menu, please? | ¿Me da la carta, por favor?
+The food was a bit slow. | La comida ha tardado un poco.
+I really enjoyed the meal. | He disfrutado mucho de la comida.
+We will come back again. | Volveremos otra vez.
+Can I pay by phone? | ¿Puedo pagar con el móvil?
+Where do I pay? | ¿Dónde pago?
+Thank you for the service. | Gracias por el servicio.
+Have a nice evening. | Que pase una buena noche.
