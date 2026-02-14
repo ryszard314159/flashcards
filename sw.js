@@ -1,34 +1,32 @@
-const CACHE_NAME = 'flashcard-v2'; // Increment this version to force update
+import { CONFIG } from './config.js';
+
+const CACHE_NAME = CONFIG.VERSION; 
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './script.js',
+  './config.js',
   './manifest.json',
   './icons/favicon.svg'
 ];
 
-// Install: Cache new assets
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
-  self.skipWaiting(); // Force the new service worker to become active immediately
+  e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
 });
 
-// Activate: Clean up old caches
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      );
-    })
+      return Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((res) => res || fetch(e.request))
-  );
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });

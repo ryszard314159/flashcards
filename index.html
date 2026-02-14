@@ -4,13 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flashcard Pro</title>
-    <meta name="theme-color" content="#2196F3">
-    
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
-    
     <link rel="stylesheet" href="style.css">
-    
     <script defer type="module" src="script.js"></script>
 </head>
 <body>
@@ -26,37 +21,32 @@
     <div class="search-container" id="searchWrapper" style="display:none">
         <input type="text" id="searchBar" placeholder="Search phrases or categories..." autocomplete="off">
     </div>
-    <input type="file" id="fileInput" hidden accept=".txt">
+    <input type="file" id="fileInput" hidden accept=".deck,.txt">
 </header>
 
 <main>
     <div id="importer">
         <h2>Flashcard Engine</h2>
-        <p>Import a <b>.txt</b> file to begin studying.</p>
-        <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">
-            Format: Front | Back
-        </p>
+        <p>Import a <b>.deck</b> file to begin.</p>
     </div>
 
     <div class="app-container" id="appView" style="display:none">
-        <button class="nav-arrow" id="prevBtn" aria-label="Previous Card">&#10094;</button>
-        
+        <button class="nav-arrow" id="prevBtn">&#10094;</button>
         <div class="card-container" id="cardCont">
             <div class="card-inner" id="cardInner">
                 <div class="card-face card-front">
                     <span class="category-label" id="catFront"></span>
                     <div class="phrase" id="engDisplay"></div>
-                    <button class="speaker-btn" data-lang="en" title="Listen">🔊</button>
+                    <button class="speaker-btn" data-lang="en">🔊</button>
                 </div>
                 <div class="card-face card-back">
                     <span class="category-label" id="catBack"></span>
                     <div class="phrase" id="spaDisplay"></div>
-                    <button class="speaker-btn" data-lang="es" title="Listen">🔊</button>
+                    <button class="speaker-btn" data-lang="es">🔊</button>
                 </div>
             </div>
         </div>
-        
-        <button class="nav-arrow" id="nextBtn" aria-label="Next Card">&#10095;</button>
+        <button class="nav-arrow" id="nextBtn">&#10095;</button>
     </div>
 </main>
 
@@ -64,6 +54,11 @@
     <button class="btn-action" id="shuffleBtn">Shuffle 🔀</button>
     <button class="btn-action" id="resetSearch" style="display:none; background:#f44336;">Clear Search</button>
 </footer>
+
+<div id="version-container">
+    <span id="version-tag"></span>
+    <span id="update-badge">New Update</span>
+</div>
 
 </body>
 </html>

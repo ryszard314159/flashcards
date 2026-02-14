@@ -30,3 +30,48 @@ header { background: var(--primary); color: white; padding: 0.8rem; display: fle
 .btn-action { background: #607D8B; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
 .btn-outline { background: rgba(255,255,255,0.2); border: 1px solid white; font-size: 0.75rem; padding: 0.4rem 0.8rem; color: white; border-radius: 5px; cursor: pointer; }
 #status { font-variant-numeric: tabular-nums; font-weight: bold; font-size: 0.9rem; }
+
+/* Version Footer */
+#version-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    padding: 6px 0;
+    font-family: sans-serif;
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.9);
+    border-top: 1px solid #eee;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+#version-tag {
+    opacity: 0.5;
+    color: #333;
+}
+
+#update-badge {
+    display: none; /* Hidden until update found */
+    margin-left: 8px;
+    background: #f44336;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Ensure main content doesn't get hidden behind the fixed version footer */
+body {
+    padding-bottom: 40px; 
+}
+

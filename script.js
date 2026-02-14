@@ -1,12 +1,9 @@
-/**
- * Flashcard Pro: Universal Learning Engine
- * Core Logic (ES6 Module)
- */
+import { CONFIG } from './config.js';
 
 let allCards = [];
 let filteredCards = [];
 let currentIndex = 0;
-let isReplacing = false; // Tracks if the next file upload should overwrite the deck
+let isReplacing = false;
 const synth = window.speechSynthesis;
 
 // DOM Elements
@@ -15,97 +12,107 @@ const searchBar = document.getElementById('searchBar');
 const fileInput = document.getElementById('fileInput');
 const statusDisplay = document.getElementById('status');
 
-// Initialize App
 window.addEventListener('DOMContentLoaded', () => {
-    // 1. Load data from LocalStorage
+    // 1. Version UI
+    const versionTag = document.getElementById('version-tag');
+    if (versionTag) versionTag.innerText = `v${CONFIG.VERSION}`;
+
+    // 2. Load Local Data
     const savedData = localStorage.getItem('myFlashcards');
     if (savedData) {
         allCards = JSON.parse(savedData);
         if (allCards.length > 0) {
             filteredCards = [...allCards];
+            updateAppTitle(allCards[0].catF);
             startApp();
         }
     }
 
-    // 2. Register PWA Service Worker
+    // 3. Service Worker with Silent Update
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(err => console.log("SW failed", err));
+        navigator.serviceWorker.register('sw.js', { type: 'module' }).then(reg => {
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Show the red badge
+                        const badge = document.getElementById('update-badge');
+                        if (badge) badge.style.display = 'inline-block';
+                        
+                        // Set click to update
+                        document.getElementById('version-container').onclick = () => {
+                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        };
+                    }
+                });
+            });
+        });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                window.location.reload();
+                refreshing = true;
+            }
+        });
     }
 
-    // 3. Attach all Event Listeners
     setupEventListeners();
 });
 
 function setupEventListeners() {
-    // Navigation Buttons
     document.getElementById('nextBtn').addEventListener('click', nextCard);
     document.getElementById('prevBtn').addEventListener('click', prevCard);
-    
-    // Action Buttons
     document.getElementById('shuffleBtn').addEventListener('click', shuffleDeck);
     document.getElementById('replaceBtn').addEventListener('click', replaceDeck);
     document.getElementById('resetSearch').addEventListener('click', resetSearch);
-    
-    // File Input Logic
     fileInput.addEventListener('change', handleFileUpload);
-
-    // Search Logic
     searchBar.addEventListener('input', handleSearch);
-
-    // Card Interaction (Flip and Audio)
     document.getElementById('cardCont').addEventListener('click', handleCardClick);
+
+    window.addEventListener('keydown', (e) => {
+        if (document.activeElement === searchBar) return;
+        if (e.code === 'Space') { e.preventDefault(); cardInner.classList.toggle('is-flipped'); }
+        else if (e.code === 'ArrowRight') nextCard();
+        else if (e.code === 'ArrowLeft') prevCard();
+    });
 }
 
-/**
- * DECK MANAGEMENT
- */
-
 function replaceDeck() {
-    if (confirm("Replace existing cards with a new file? Current cards will be deleted.")) {
-        isReplacing = true; 
-        fileInput.click(); 
+    if (confirm("Delete all current cards and start fresh?")) {
+        isReplacing = true;
+        fileInput.click();
     }
 }
 
 function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
-        // Clear memory if "Replace" was clicked
-        if (isReplacing) {
-            allCards = [];
-            isReplacing = false; 
-        }
+        if (isReplacing) { allCards = []; isReplacing = false; }
         parseAndAdd(event.target.result);
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset input so same file can be uploaded twice if needed
+    e.target.value = '';
 }
 
 function parseAndAdd(text) {
     const lines = text.split('\n');
-    let cEn = "General", cEs = "General";
+    let curCatF = "General", curCatB = "General";
     let newCards = [];
+    let firstTitleFound = false;
 
     lines.forEach(line => {
         const t = line.trim();
-        // Check for Category Marker: * Category Front | Category Back
         if (t.startsWith('*')) {
             const p = t.replace('*', '').trim();
-            if (p.includes('|')) {
-                [cEn, cEs] = p.split('|').map(s => s.trim());
-            } else { 
-                cEn = cEs = p; 
-            }
-        } 
-        // Check for Card Content: Front | Back
-        else if (t.includes('|')) {
-            const [en, es] = t.split('|').map(s => s.trim());
-            if(en && es) {
-                newCards.push({ catEn: cEn, catEs: cEs, eng: en, spa: es });
-            }
+            if (!firstTitleFound) { updateAppTitle(p.split('|')[0].trim()); firstTitleFound = true; }
+            if (p.includes('|')) [curCatF, curCatB] = p.split('|').map(s => s.trim());
+            else curCatF = curCatB = p;
+        } else if (t.includes('|')) {
+            const [f, b] = t.split('|').map(s => s.trim());
+            if(f && b) newCards.push({ catF: curCatF, catB: curCatB, front: f, back: b });
         }
     });
 
@@ -114,10 +121,6 @@ function parseAndAdd(text) {
     filteredCards = [...allCards];
     startApp();
 }
-
-/**
- * APP FLOW & NAVIGATION
- */
 
 function startApp() {
     document.getElementById('importer').style.display = 'none';
@@ -129,39 +132,20 @@ function startApp() {
 }
 
 function updateCard() {
-    if (filteredCards.length === 0) {
-        document.getElementById('engDisplay').innerText = "No matches found";
-        document.getElementById('spaDisplay').innerText = "Sin coincidencias";
-        statusDisplay.innerText = "0 / 0";
-        return;
-    }
-
+    if (filteredCards.length === 0) return;
     const card = filteredCards[currentIndex];
-    cardInner.classList.remove('is-flipped'); // Always show front on new card
-    
-    // Slight delay to allow flip animation to reset if moving while flipped
+    cardInner.classList.remove('is-flipped');
     setTimeout(() => {
-        document.getElementById('catFront').innerText = card.catEn;
-        document.getElementById('catBack').innerText = card.catEs;
-        document.getElementById('engDisplay').innerText = card.eng;
-        document.getElementById('spaDisplay').innerText = card.spa;
+        document.getElementById('catFront').innerText = card.catF;
+        document.getElementById('catBack').innerText = card.catB;
+        document.getElementById('engDisplay').innerText = card.front;
+        document.getElementById('spaDisplay').innerText = card.back;
         statusDisplay.innerText = `${currentIndex + 1} / ${filteredCards.length}`;
     }, 100);
 }
 
-function nextCard() { 
-    if(filteredCards.length) { 
-        currentIndex = (currentIndex + 1) % filteredCards.length; 
-        updateCard(); 
-    } 
-}
-
-function prevCard() { 
-    if(filteredCards.length) { 
-        currentIndex = (currentIndex - 1 + filteredCards.length) % filteredCards.length; 
-        updateCard(); 
-    } 
-}
+function nextCard() { if(filteredCards.length) { currentIndex = (currentIndex + 1) % filteredCards.length; updateCard(); } }
+function prevCard() { if(filteredCards.length) { currentIndex = (currentIndex - 1 + filteredCards.length) % filteredCards.length; updateCard(); } }
 
 function shuffleDeck() {
     for (let i = filteredCards.length - 1; i > 0; i--) {
@@ -172,23 +156,16 @@ function shuffleDeck() {
     updateCard();
 }
 
-/**
- * SEARCH LOGIC
- */
-
 function handleSearch() {
     const query = searchBar.value.toLowerCase();
     const resetBtn = document.getElementById('resetSearch');
-    
     if (query === "") {
         filteredCards = [...allCards];
         resetBtn.style.display = "none";
     } else {
         filteredCards = allCards.filter(c => 
-            c.eng.toLowerCase().includes(query) || 
-            c.spa.toLowerCase().includes(query) || 
-            c.catEn.toLowerCase().includes(query) ||
-            c.catEs.toLowerCase().includes(query)
+            c.front.toLowerCase().includes(query) || c.back.toLowerCase().includes(query) ||
+            c.catF.toLowerCase().includes(query) || c.catB.toLowerCase().includes(query)
         );
         resetBtn.style.display = "block";
     }
@@ -196,54 +173,31 @@ function handleSearch() {
     updateCard();
 }
 
-function resetSearch() {
-    searchBar.value = "";
-    handleSearch();
-}
+function resetSearch() { searchBar.value = ""; handleSearch(); }
 
-/**
- * INTERACTION & AUDIO
- */
+function updateAppTitle(title) {
+    document.title = title;
+    const titleH2 = document.querySelector('#importer h2');
+    if (titleH2) titleH2.innerText = title;
+}
 
 function handleCardClick(e) {
     const btn = e.target.closest('.speaker-btn');
     if (btn) {
-        e.stopPropagation(); // Don't flip the card when clicking the speaker
+        e.stopPropagation();
         const lang = btn.getAttribute('data-lang');
-        const text = (lang === 'en') ? filteredCards[currentIndex].eng : filteredCards[currentIndex].spa;
+        const text = (lang === 'en') ? filteredCards[currentIndex].front : filteredCards[currentIndex].back;
         speak(text, lang);
-    } else {
-        cardInner.classList.toggle('is-flipped');
-    }
+    } else cardInner.classList.toggle('is-flipped');
 }
 
 function speak(text, langCode) {
     if (synth.speaking) synth.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    
-    // Attempt to find a voice that matches the language code (e.g., 'es' or 'en')
     const voices = synth.getVoices();
     const voice = voices.find(v => v.lang.startsWith(langCode));
-    
     if (voice) utter.voice = voice;
-    utter.rate = 0.9; 
+    utter.rate = 0.9;
     synth.speak(utter);
 }
-
-// Pre-load voices for some browsers
 window.speechSynthesis.onvoiceschanged = () => synth.getVoices();
-
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-        reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    if (confirm("New version available! Refresh now?")) {
-                        window.location.reload();
-                    }
-                }
-            });
-        });
-    });
-}
