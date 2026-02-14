@@ -5,54 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flashcard Pro Spain</title>
     <meta name="theme-color" content="#2196F3">
+    
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+    
     <link rel="stylesheet" href="style.css">
+    
+    <script defer type="module" src="script.js"></script>
 </head>
 <body>
-
-<header>
-    <div class="header-top">
-        <div id="status">0 / 0</div>
-        <div style="display: flex; gap: 8px;">
-            <button class="btn-outline" id="clearBtn" style="display:none" onclick="clearDeck()">Clear</button>
-            <button class="btn-outline" onclick="document.getElementById('fileInput').click()">+ Add</button>
-        </div>
-    </div>
-    <div class="search-container" id="searchWrapper" style="display:none">
-        <input type="text" id="searchBar" placeholder="Search phrases or categories..." oninput="handleSearch()">
-    </div>
-    <input type="file" id="fileInput" hidden accept=".txt">
-</header>
-
-<div id="importer">
-    <h2>Flashcard Engine</h2>
-    <p>Import your <b>.txt</b> files to begin.</p>
-</div>
-
-<div class="app-container" id="appView" style="display:none">
-    <button class="nav-arrow" onclick="prevCard()">&#10094;</button>
-    <div class="card-container" id="cardCont" onclick="handleCardClick(event)">
-        <div class="card-inner" id="cardInner">
-            <div class="card-face card-front">
-                <span class="category-label" id="catFront"></span>
-                <div class="phrase" id="engDisplay"></div>
-                <button class="speaker-btn" data-lang="en">🔊</button>
-            </div>
-            <div class="card-face card-back">
-                <span class="category-label" id="catBack"></span>
-                <div class="phrase" id="spaDisplay"></div>
-                <button class="speaker-btn" data-lang="es">🔊</button>
+    <header>
+        <div class="header-top">
+            <div id="status">0 / 0</div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-outline" id="clearBtn" style="display:none" onclick="clearDeck()">Clear</button>
+                <button class="btn-outline" onclick="document.getElementById('fileInput').click()">+ Add</button>
             </div>
         </div>
+        <div class="search-container" id="searchWrapper" style="display:none">
+            <input type="text" id="searchBar" placeholder="Search phrases or categories..." oninput="handleSearch()">
+        </div>
+        <input type="file" id="fileInput" hidden accept=".txt">
+    </header>
+
+    <div id="importer">
+        <h2>Flashcard Engine</h2>
+        <p>Import your <b>.txt</b> files to begin.</p>
     </div>
-    <button class="nav-arrow" onclick="nextCard()">&#10095;</button>
-</div>
 
-<div class="utility-footer" id="utilFooter" style="display:none">
-    <button class="btn-action" onclick="shuffleDeck()">Shuffle 🔀</button>
-    <button class="btn-action" id="resetSearch" style="display:none; background:#f44336;" onclick="resetSearch()">Clear Search</button>
-</div>
+    <div class="app-container" id="appView" style="display:none">
+        <button class="nav-arrow" id="prevBtn">&#10094;</button>
+        <div class="card-container" id="cardCont">
+            <div class="card-inner" id="cardInner">
+                <div class="card-face card-front">
+                    <span class="category-label" id="catFront"></span>
+                    <div class="phrase" id="engDisplay"></div>
+                    <button class="speaker-btn" data-lang="en">🔊</button>
+                </div>
+                <div class="card-face card-back">
+                    <span class="category-label" id="catBack"></span>
+                    <div class="phrase" id="spaDisplay"></div>
+                    <button class="speaker-btn" data-lang="es">🔊</button>
+                </div>
+            </div>
+        </div>
+        <button class="nav-arrow" id="nextBtn">&#10095;</button>
+    </div>
 
-<script src="script.js"></script>
+    <div class="utility-footer" id="utilFooter" style="display:none">
+        <button class="btn-action" id="shuffleBtn">Shuffle 🔀</button>
+        <button class="btn-action" id="resetSearch" style="display:none; background:#f44336;">Clear Search</button>
+    </div>
 </body>
 </html>

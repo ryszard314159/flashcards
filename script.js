@@ -3,7 +3,13 @@ let filteredCards = [];
 let currentIndex = 0;
 const synth = window.speechSynthesis;
 
-window.onload = () => {
+// Elements
+const cardInner = document.getElementById('cardInner');
+const searchBar = document.getElementById('searchBar');
+const fileInput = document.getElementById('fileInput');
+
+// Initialize
+window.addEventListener('DOMContentLoaded', () => {
     const savedData = localStorage.getItem('myFlashcards');
     if (savedData) {
         allCards = JSON.parse(savedData);
@@ -12,20 +18,42 @@ window.onload = () => {
             startApp();
         }
     }
-    // Register Service Worker for PWA
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
-};
 
-document.getElementById('fileInput').addEventListener('change', function(e) {
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log("SW failed", err));
+    }
+
+    // Attach Event Listeners
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Navigation & Actions
+    document.getElementById('nextBtn').addEventListener('click', nextCard);
+    document.getElementById('prevBtn').addEventListener('click', prevCard);
+    document.getElementById('shuffleBtn').addEventListener('click', shuffleDeck);
+    document.getElementById('clearBtn').addEventListener('click', clearDeck);
+    document.getElementById('resetSearch').addEventListener('click', resetSearch);
+    
+    // File Import
+    fileInput.addEventListener('change', handleFileUpload);
+
+    // Search
+    searchBar.addEventListener('input', handleSearch);
+
+    // Card Flip & Audio
+    document.getElementById('cardCont').addEventListener('click', handleCardClick);
+}
+
+function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => parseAndAdd(e.target.result);
+    reader.onload = (event) => parseAndAdd(event.target.result);
     reader.readAsText(file);
-    this.value = ''; 
-});
+    e.target.value = ''; 
+}
 
 function parseAndAdd(text) {
     const lines = text.split('\n');
@@ -52,7 +80,7 @@ function parseAndAdd(text) {
 }
 
 function handleSearch() {
-    const query = document.getElementById('searchBar').value.toLowerCase();
+    const query = searchBar.value.toLowerCase();
     const resetBtn = document.getElementById('resetSearch');
     
     if (query === "") {
@@ -72,7 +100,7 @@ function handleSearch() {
 }
 
 function resetSearch() {
-    document.getElementById('searchBar').value = "";
+    searchBar.value = "";
     handleSearch();
 }
 
@@ -84,14 +112,15 @@ function handleCardClick(e) {
         const text = (lang === 'en') ? filteredCards[currentIndex].eng : filteredCards[currentIndex].spa;
         speak(text, lang);
     } else {
-        document.getElementById('cardInner').classList.toggle('is-flipped');
+        cardInner.classList.toggle('is-flipped');
     }
 }
 
 function speak(text, langCode) {
     if (synth.speaking) synth.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    const voice = synth.getVoices().find(v => v.lang.startsWith(langCode));
+    const voices = synth.getVoices();
+    const voice = voices.find(v => v.lang.startsWith(langCode));
     if (voice) utter.voice = voice;
     utter.rate = 0.9; 
     synth.speak(utter);
@@ -115,7 +144,7 @@ function updateCard() {
         return;
     }
     const card = filteredCards[currentIndex];
-    document.getElementById('cardInner').classList.remove('is-flipped');
+    cardInner.classList.remove('is-flipped');
     
     setTimeout(() => {
         document.getElementById('catFront').innerText = card.catEn;
@@ -144,4 +173,3 @@ function clearDeck() {
         location.reload();
     }
 }
-window.speechSynthesis.getVoices();
