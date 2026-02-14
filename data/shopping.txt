@@ -1,0 +1,99 @@
+* Shopping & Markets | Compras y Mercados
+Where is the shopping center? | ¿Dónde está el centro comercial?
+What time do you open? | ¿A qué hora abren?
+What time do you close? | ¿A qué hora cierran?
+I am just looking, thank you. | Solo estoy mirando, gracias.
+Can you help me? | ¿Puede ayudarme?
+How much does this cost? | ¿Cuánto cuesta esto?
+It is very expensive. | Es muy caro.
+It is a bargain. | Es una ganga.
+Do you have this in a smaller size? | ¿Tiene esto en una talla más pequeña?
+Do you have this in a larger size? | ¿Tiene esto en una talla más grande?
+Where are the fitting rooms? | ¿Dónde están los probadores?
+I’ll take it. | Me lo llevo.
+I don't like it. | No me gusta.
+Can I try this on? | ¿Puedo probármelo?
+It fits me well. | Me queda bien.
+It is too tight. | Me queda muy estrecho.
+It is too big. | Me queda muy grande.
+Do you have this in another color? | ¿Tiene esto en otro color?
+I am looking for a gift. | Estoy buscando un regalo.
+Can you wrap it for a gift? | ¿Puede envolverlo para regalo?
+Where is the market? | ¿Dónde está el mercado?
+A kilo of oranges, please. | Un kilo de naranjas, por favor.
+Half a kilo of tomatoes. | Medio kilo de tomates.
+A little more, please. | Un poco más, por favor.
+A little less. | Un poco menos.
+Is the fruit fresh? | ¿Es fresca la fruta?
+I want local products. | Quiero productos locales.
+Where is the checkout? | ¿Dónde está la caja?
+Is there a discount? | ¿Hay algún descuento?
+Are these on sale? | ¿Están estas en rebajas?
+I need a bag, please. | Necesito una bolsa, por favor.
+Do you accept credit cards? | ¿Aceptan tarjetas de crédito?
+Can I pay in cash? | ¿Puedo pagar en efectivo?
+I need a receipt. | Necesito un recibo.
+Can I return this? | ¿Puedo devolver esto?
+I want a refund. | Quiero un reembolso.
+Where can I buy stamps? | ¿Dónde puedo comprar sellos?
+Is there a bookstore nearby? | ¿Hay una librería cerca?
+I am looking for a leather bag. | Estoy buscando un bolso de piel.
+Is this handmade? | ¿Está hecho a mano?
+What is it made of? | ¿De qué está hecho?
+Is it pure wool? | ¿Es pura lana?
+I like this design. | Me gusta este diseño.
+Where are the shoes? | ¿Dónde están los zapatos?
+My size is forty. | Mi talla es la cuarenta.
+These shoes are uncomfortable. | Estos zapatos son incómodos.
+Do you have sandals? | ¿Tiene sandalias?
+I need sunscreen. | Necesito crema solar.
+Where is the pharmacy? | ¿Dónde está la farmacia?
+I am looking for a souvenir. | Estoy buscando un recuerdo (souvenir).
+Is there a flea market? | ¿Hay un rastro / mercadillo?
+What days is the market open? | ¿Qué días está abierto el mercado?
+I want to buy some cheese. | Quiero comprar queso.
+Can I taste it? | ¿Puedo probarlo?
+It is very tasty. | Está muy rico.
+I'll take three of these. | Me llevo tres de estos.
+Where can I buy a SIM card? | ¿Dónde puedo comprar una tarjeta SIM?
+I need a phone charger. | Necesito un cargador de móvil.
+Do you sell batteries? | ¿Vende pilas?
+Where is the bakery? | ¿Dónde está la panadería?
+A loaf of bread, please. | Una barra de pan, por favor.
+I want some pastries. | Quiero unos pasteles.
+Is there a supermarket around here? | ¿Hay un supermercado por aquí?
+Where are the drinks? | ¿Dónde están las bebidas?
+I need a bottle of water. | Necesito una botella de agua.
+Where is the olive oil? | ¿Dónde está el aceite de oliva?
+Which one is the best quality? | ¿Cuál es la mejor calidad?
+I am looking for saffron. | Estoy buscando azafrán.
+Is this organic? | ¿Es esto orgánico / ecológico?
+It is too expensive for me. | Es demasiado caro para mí.
+Can you lower the price? | ¿Puede bajar el precio?
+I'll give you ten euros. | Le doy diez euros.
+That's my final offer. | Es mi última oferta.
+Where are the traditional ceramics? | ¿Dónde está la cerámica tradicional?
+I love Spanish fashion. | Me encanta la moda española.
+Do you have a catalog? | ¿Tiene un catálogo?
+I'll come back later. | Volveré más tarde.
+Where is the exit? | ¿Dónde está la salida?
+Thank you for your help. | Gracias por su ayuda.
+Have a nice day. | Que tenga un buen día.
+Is there a jewelry store? | ¿Hay una joyería?
+I want a silver necklace. | Quiero un collar de plata.
+Is this real gold? | ¿Es oro de verdad?
+Where can I buy postcards? | ¿Dónde puedo comprar postales?
+I need a pen. | Necesito un bolígrafo.
+Do you sell newspapers? | ¿Vende periódicos?
+Where is the perfume section? | ¿Dónde está la sección de perfumería?
+I like this scent. | Me gusta este aroma.
+Do you have a tester? | ¿Tiene un probador?
+I'll take the small one. | Me llevo el pequeño.
+I'll take the large one. | Me llevo el grande.
+Is tax included? | ¿Está incluido el impuesto?
+Can I get a tax-free form? | ¿Puedo obtener el formulario de Tax-Free?
+Where is the customer service? | ¿Dónde está la atención al cliente?
+I have a problem with this. | Tengo un problema con esto.
+It is broken. | Está roto.
+Can I exchange it? | ¿Puedo cambiarlo?
+Thank you, goodbye. | Gracias, adiós.
