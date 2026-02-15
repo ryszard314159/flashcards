@@ -15,7 +15,7 @@ const statusDisplay = document.getElementById('status');
 window.addEventListener('DOMContentLoaded', () => {
     // 1. Version UI
     const versionTag = document.getElementById('version-tag');
-    if (versionTag) versionTag.innerText = `${CONFIG.VERSION}`;
+    if (versionTag) versionTag.innerText = `Version: ${CONFIG.VERSION}`;
 
     // 2. Load Local Data
     const savedData = localStorage.getItem('myFlashcards');
