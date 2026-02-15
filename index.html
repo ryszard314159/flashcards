@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flashcard Pro</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Flashcards</title>
     <link rel="stylesheet" href="style.css">
     <script defer type="module" src="script.js"></script>
 </head>
@@ -13,21 +12,21 @@
 <header>
     <div class="header-top">
         <div id="status">0 / 0</div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 0.5rem;">
+            <button id="settingsBtn">⚙️</button>
             <button class="btn-outline" id="replaceBtn" style="display:none">Replace</button>
             <button class="btn-outline" onclick="document.getElementById('fileInput').click()">+ Add</button>
         </div>
     </div>
     <div class="search-container" id="searchWrapper" style="display:none">
-        <input type="text" id="searchBar" placeholder="Search phrases or categories..." autocomplete="off">
+        <input type="text" id="searchBar" placeholder="Search phrases..." autocomplete="off">
     </div>
     <input type="file" id="fileInput" hidden accept=".deck,.txt">
 </header>
 
 <main>
     <div id="importer">
-        <h2>Flashcard Engine</h2>
-        <p>Import a <b>.deck</b> file to begin.</p>
+        <h2>Import a .deck file</h2>
     </div>
 
     <div class="app-container" id="appView" style="display:none">
@@ -52,12 +51,39 @@
 
 <footer class="utility-footer" id="utilFooter" style="display:none">
     <button class="btn-action" id="shuffleBtn">Shuffle 🔀</button>
-    <button class="btn-action" id="resetSearch" style="display:none; background:#f44336;">Clear Search</button>
+    <button class="btn-action" id="resetSearch" style="display:none; background:tomato;">Clear Search</button>
 </footer>
+
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <button id="closeSettings" aria-label="Close">&times;</button>
+        
+        <h3 style="margin-top: 0;">Study Settings</h3>
+        
+        <div class="filter-controls">
+            <strong>Categories:</strong>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn-mini" id="selectAll">All</button>
+                <button class="btn-mini" id="selectNone">None</button>
+            </div>
+        </div>
+        
+        <div id="categoryList"></div>
+
+        <div class="setting-group">
+            <div class="setting-row">
+                <span>Limit to</span>
+                <input type="number" id="sampleSize" min="1" value="3">
+                <span>cards</span>
+            </div>
+            <button class="btn-action" id="applySettings" style="width: 100%; margin-top: 1rem;">Apply & Restart</button>
+        </div>
+    </div>
+</div>
 
 <div id="version-container">
     <span id="version-tag"></span>
-    <span id="update-badge">New Update</span>
+    <span id="update-badge" style="display:none; color:red; margin-left:10px; font-weight:bold;">NEW UPDATE</span>
 </div>
 
 </body>
