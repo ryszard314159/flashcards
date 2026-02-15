@@ -12,23 +12,21 @@ const ASSETS = [
   './icons/favicon.svg'
 ];
 
-// INSTALL: Pre-cache assets
+// INSTALL: Pre-cache assets but do NOT skip waiting automatically
 self.addEventListener('install', (e) => {
-  // force move to 'active' state even if old SW exists
-  self.skipWaiting(); 
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
 });
 
-// ACTIVATE: Clean up old versions and take control
+// ACTIVATE: Clean up old versions
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       );
-    }).then(() => self.clients.claim()) // Important: Take control of open tabs immediately
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -39,7 +37,7 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// MESSAGE: Trigger the update
+// MESSAGE: Trigger the update only when the user clicks the badge
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

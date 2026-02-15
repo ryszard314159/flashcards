@@ -12,8 +12,9 @@ const fileInput = document.getElementById('fileInput');
 const statusDisplay = document.getElementById('status');
 
 window.addEventListener('DOMContentLoaded', () => {
+    // 1. Updated version string format
     const versionTag = document.getElementById('version-tag');
-    if (versionTag) versionTag.innerText = `v${CONFIG.VERSION}`;
+    if (versionTag) versionTag.innerText = `Version: ${CONFIG.VERSION}`;
 
     const savedData = localStorage.getItem('myFlashcards');
     if (savedData) {
@@ -30,7 +31,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js', { type: 'module' }).then(reg => {
             
-            // Check for updates
+            // Periodically check for updates
             reg.update();
 
             document.addEventListener('visibilitychange', () => {
@@ -40,13 +41,12 @@ window.addEventListener('DOMContentLoaded', () => {
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
+                    // Only show badge if the worker has finished installing but isn't active yet
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         const badge = document.getElementById('update-badge');
                         if (badge) {
                             badge.style.display = 'inline-block';
-                            // Target the version-container for the click
                             document.getElementById('version-container').onclick = () => {
-                                console.log("Updating to new version...");
                                 newWorker.postMessage({ type: 'SKIP_WAITING' });
                             };
                         }
