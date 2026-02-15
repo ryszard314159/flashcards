@@ -13,9 +13,9 @@
     <div class="header-top">
         <div id="status">0 / 0</div>
         <div style="display: flex; gap: 0.5rem;">
-            <button id="settingsBtn">⚙️</button>
             <button class="btn-outline" id="replaceBtn" style="display:none">Replace</button>
             <button class="btn-outline" onclick="document.getElementById('fileInput').click()">+ Add</button>
+            <button id="settingsBtn" aria-label="Menu">&#8942;</button>
         </div>
     </div>
     <div class="search-container" id="searchWrapper" style="display:none">
@@ -54,12 +54,18 @@
     <button class="btn-action" id="resetSearch" style="display:none; background:tomato;">Clear Search</button>
 </footer>
 
+
+<!-- TODO <div class="modal-content">
+    <button id="closeSettings" aria-label="Close">&times;</button>
+    <h3 style="margin-top: 0;">Menu</h3>
+    ...
+</div> -->
+
+
 <div id="settingsModal" class="modal">
     <div class="modal-content">
-        <button id="closeSettings" aria-label="Close">&times;</button>
-        
+        <button id="closeSettings" aria-label="Close">&times;</button>    
         <h3 style="margin-top: 0;">Study Settings</h3>
-        
         <div class="filter-controls">
             <strong>Categories:</strong>
             <div style="display: flex; gap: 0.5rem;">
