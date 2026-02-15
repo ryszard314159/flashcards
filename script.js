@@ -12,7 +12,6 @@ const fileInput = document.getElementById('fileInput');
 const statusDisplay = document.getElementById('status');
 
 window.addEventListener('DOMContentLoaded', () => {
-    // 1. Updated version string format
     const versionTag = document.getElementById('version-tag');
     if (versionTag) versionTag.innerText = `Version: ${CONFIG.VERSION}`;
 
@@ -22,7 +21,7 @@ window.addEventListener('DOMContentLoaded', () => {
             allCards = JSON.parse(savedData);
             if (allCards.length > 0) {
                 filteredCards = [...allCards];
-                updateAppTitle(allCards[0].catF);
+                updateAppTitle(localStorage.getItem('myDeckTitle') || "Flashcards");
                 startApp();
             }
         } catch (e) { console.error("Data error", e); }
@@ -30,10 +29,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js', { type: 'module' }).then(reg => {
-            
-            // Periodically check for updates
             reg.update();
-
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') reg.update();
             });
@@ -41,7 +37,6 @@ window.addEventListener('DOMContentLoaded', () => {
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
-                    // Only show badge if the worker has finished installing but isn't active yet
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         const badge = document.getElementById('update-badge');
                         if (badge) {
@@ -86,7 +81,7 @@ function setupEventListeners() {
 }
 
 function replaceDeck() {
-    if (confirm("Delete all cards and import fresh?")) {
+    if (confirm("Delete all current cards and start fresh?")) {
         isReplacing = true;
         fileInput.click();
     }
@@ -108,25 +103,41 @@ function parseAndAdd(text) {
     const lines = text.split('\n');
     let curCatF = "General", curCatB = "General";
     let newCards = [];
-    let firstTitleFound = false;
 
     lines.forEach(line => {
         const t = line.trim();
-        if (t.startsWith('*')) {
+        if (!t) return;
+
+        // TOPIC HEADER (**) - Updates the App Title
+        if (t.startsWith('**')) {
+            const topicTitle = t.replace('**', '').trim();
+            updateAppTitle(topicTitle);
+            localStorage.setItem('myDeckTitle', topicTitle);
+        } 
+        // CATEGORY HEADER (*) - Updates the label on the cards
+        else if (t.startsWith('*')) {
             const p = t.replace('*', '').trim();
-            if (!firstTitleFound) { updateAppTitle(p.split('|')[0].trim()); firstTitleFound = true; }
-            if (p.includes('|')) [curCatF, curCatB] = p.split('|').map(s => s.trim());
-            else curCatF = curCatB = p;
-        } else if (t.includes('|')) {
+            if (p.includes('|')) {
+                [curCatF, curCatB] = p.split('|').map(s => s.trim());
+            } else {
+                curCatF = curCatB = p;
+            }
+        } 
+        // FLASHCARD ( | )
+        else if (t.includes('|')) {
             const [f, b] = t.split('|').map(s => s.trim());
-            if(f && b) newCards.push({ catF: curCatF, catB: curCatB, front: f, back: b });
+            if (f && b) {
+                newCards.push({ catF: curCatF, catB: curCatB, front: f, back: b });
+            }
         }
     });
 
-    allCards = [...allCards, ...newCards];
-    localStorage.setItem('myFlashcards', JSON.stringify(allCards));
-    filteredCards = [...allCards];
-    startApp();
+    if (newCards.length > 0) {
+        allCards = [...allCards, ...newCards];
+        localStorage.setItem('myFlashcards', JSON.stringify(allCards));
+        filteredCards = [...allCards];
+        startApp();
+    }
 }
 
 function startApp() {
