@@ -38,13 +38,14 @@ header { background: var(--primary); color: white; padding: 0.8rem; display: fle
     left: 0;
     width: 100%;
     text-align: center;
-    padding: 6px 0;
+    /* safe-area-inset-bottom adds extra space for phone gestures/bars */
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); 
     font-family: sans-serif;
     font-size: 11px;
-    background: rgba(255, 255, 255, 0.9);
-    border-top: 1px solid #eee;
+    background: rgba(255, 255, 255, 0.95); /* Slightly more solid */
+    border-top: 1px solid #ddd;
     cursor: pointer;
-    z-index: 1000;
+    z-index: 9999; /* Ensure it stays on top of everything */
 }
 
 #version-tag {
@@ -70,8 +71,8 @@ header { background: var(--primary); color: white; padding: 0.8rem; display: fle
     100% { transform: scale(1); opacity: 1; }
 }
 
-/* Ensure main content doesn't get hidden behind the fixed version footer */
+/* Adjust the body padding so content doesn't get cut off */
 body {
-    padding-bottom: 40px; 
+    padding-bottom: calc(50px + env(safe-area-inset-bottom));
 }
 
