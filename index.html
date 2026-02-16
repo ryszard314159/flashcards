@@ -24,35 +24,30 @@
     <input type="file" id="fileInput" hidden accept=".deck,.txt">
 </header>
 
-<main>
-    <div id="importer">
-        <h2>Import a .deck file</h2>
-    </div>
+<div id="importer" style="text-align: center; padding: 2rem;">
+    <h2>Import a .deck file</h2>
+    <p>Please select your study file to begin.</p>
+</div>
 
-    <div class="app-container" id="appView" style="display:none">
-        <button class="nav-arrow" id="prevBtn">&#10094;</button>
-        <div class="card-container" id="cardCont">
-            <div class="card-inner" id="cardInner">
-                <div class="card-face card-front">
-                    <span class="category-label" id="catFront"></span>
-                    <div class="phrase" id="engDisplay"></div>
-                    <button class="speaker-btn" data-lang="en">🔊</button>
-                </div>
-                <div class="card-face card-back">
-                    <span class="category-label" id="catBack"></span>
-                    <div class="phrase" id="spaDisplay"></div>
-                    <button class="speaker-btn" data-lang="es">🔊</button>
-                </div>
+<main class="app-container" id="appView" style="display:none">
+    <div class="card-container" id="cardCont">
+        <div class="nav-zone left" id="prevZone"><span class="nav-arrow-watermark">&#10094;</span></div>
+        <div class="nav-zone right" id="nextZone"><span class="nav-arrow-watermark">&#10095;</span></div>
+        <div class="card-inner" id="cardInner">
+            <div class="card-face card-front">
+                <span class="category-label" id="catFront"></span>
+                <div class="phrase" id="engDisplay"></div>
+                <button class="speaker-btn" data-lang="en">🔊</button>
+            </div>
+
+            <div class="card-face card-back">
+                <span class="category-label" id="catBack"></span>
+                <div class="phrase" id="spaDisplay"></div>
+                <button class="speaker-btn" data-lang="es">🔊</button>
             </div>
         </div>
-        <button class="nav-arrow" id="nextBtn">&#10095;</button>
     </div>
 </main>
-
-<footer class="utility-footer" id="utilFooter" style="display:none">
-    <button class="btn-action" id="shuffleBtn">Shuffle 🔀</button>
-    <button class="btn-action" id="resetSearch" style="display:none; background:tomato;">Clear Search</button>
-</footer>
 
 
 <!-- TODO <div class="modal-content">
@@ -80,6 +75,7 @@
             <div class="setting-row">
                 <span>Limit to</span>
                 <input type="number" id="sampleSize" min="1" value="3">
+                <!-- <input type="number" id="sampleSize" placeholder="Limit (optional)"> -->
                 <span>cards</span>
             </div>
             <button class="btn-action" id="applySettings" style="width: 100%; margin-top: 1rem;">Apply & Restart</button>
@@ -87,10 +83,12 @@
     </div>
 </div>
 
-<div id="version-container">
-    <span id="version-tag"></span>
-    <span id="update-badge" style="display:none; color:red; margin-left:10px; font-weight:bold;">NEW UPDATE</span>
-</div>
+<footer id="version-container" style="text-align: center; padding: 5px; background: ivory; border-top: 1px solid #ddd;">
+    <span id="version-tag" style="font-size: 0.8rem; color: #666;"></span>
+    <span id="update-badge" style="display:none; color:red; margin-left:10px; font-weight:bold; cursor:pointer;" title="Click to update">
+        (NEW UPDATE AVAILABLE)
+    </span>
+</footer>
 
 </body>
 </html>

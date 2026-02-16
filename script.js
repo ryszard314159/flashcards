@@ -29,52 +29,122 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error("Data error", e); }
     }
 
+    // NEW
+
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js', { type: 'module' }).then(reg => {
+            // Check for updates every time the app loads
             reg.update();
+
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Show the badge instead of auto-reloading
                         const badge = document.getElementById('update-badge');
                         if (badge) badge.style.display = 'inline-block';
-                        document.getElementById('version-container').onclick = () => {
-                            newWorker.postMessage({ type: 'SKIP_WAITING' });
-                        };
+                        
+                        const versionCont = document.getElementById('version-container');
+                        if (versionCont) {
+                            versionCont.onclick = () => {
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            };
+                        }
                     }
                 });
             });
         });
-        navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+
+        // This ensures we only reload ONCE when the new worker has actually claimed the page
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+        });
     }
 
     setupEventListeners();
 });
 
 function setupEventListeners() {
-    document.getElementById('nextBtn').addEventListener('click', nextCard);
-    document.getElementById('prevBtn').addEventListener('click', prevCard);
-    document.getElementById('shuffleBtn').addEventListener('click', shuffleDeck);
-    document.getElementById('replaceBtn').addEventListener('click', replaceDeck);
-    document.getElementById('resetSearch').addEventListener('click', resetSearch);
-    document.getElementById('settingsBtn').addEventListener('click', openSettings);
-    document.getElementById('closeSettings').addEventListener('click', () => { settingsModal.style.display = 'none'; });
-    document.getElementById('applySettings').addEventListener('click', applySettings);
-    document.getElementById('selectAll').addEventListener('click', () => {
-        document.querySelectorAll('#categoryList input').forEach(cb => cb.checked = true);
-    });
-    document.getElementById('selectNone').addEventListener('click', () => {
-        document.querySelectorAll('#categoryList input').forEach(cb => cb.checked = false);
-    });
-    fileInput.addEventListener('change', handleFileUpload);
-    searchBar.addEventListener('input', () => applyFilters(false));
-    document.getElementById('cardCont').addEventListener('click', handleCardClick);
+    // 1. Navigation Zones (The 15% side margins with watermarks)
+    const pZone = document.getElementById('prevZone');
+    const nZone = document.getElementById('nextZone');
+    
+    if (pZone) {
+        pZone.addEventListener('click', (e) => {
+            e.stopPropagation(); // Stops the card from flipping when navigating
+            prevCard();
+        });
+    }
+    
+    if (nZone) {
+        nZone.addEventListener('click', (e) => {
+            e.stopPropagation(); // Stops the card from flipping when navigating
+            nextCard();
+        });
+    }
 
+    // 2. Card Interaction (Flipping and Audio)
+    const cardCont = document.getElementById('cardCont');
+    if (cardCont) {
+        cardCont.addEventListener('click', handleCardClick);
+    }
+
+    // 3. Menu / Settings Modal
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeSettings = document.getElementById('closeSettings');
+    const applySettingsBtn = document.getElementById('applySettings');
+
+    if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
+    if (closeSettings) {
+        closeSettings.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+    }
+    if (applySettingsBtn) applySettingsBtn.addEventListener('click', applySettings);
+
+    // 4. Modal Utility Buttons (All/None)
+    const selectAll = document.getElementById('selectAll');
+    const selectNone = document.getElementById('selectNone');
+
+    if (selectAll) {
+        selectAll.addEventListener('click', () => {
+            document.querySelectorAll('#categoryList input').forEach(cb => cb.checked = true);
+        });
+    }
+    if (selectNone) {
+        selectNone.addEventListener('click', () => {
+            document.querySelectorAll('#categoryList input').forEach(cb => cb.checked = false);
+        });
+    }
+
+    // 5. File Management & Search
+    const replaceBtn = document.getElementById('replaceBtn');
+    const resetSearchBtn = document.getElementById('resetSearch');
+
+    if (fileInput) fileInput.addEventListener('change', handleFileUpload);
+    if (replaceBtn) replaceBtn.addEventListener('click', replaceDeck);
+    if (resetSearchBtn) resetSearchBtn.addEventListener('click', resetSearch);
+    
+    if (searchBar) {
+        searchBar.addEventListener('input', () => applyFilters(false));
+    }
+
+    // 6. Global Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
+        // Don't trigger shortcuts if the user is typing in the search bar
         if (document.activeElement === searchBar) return;
-        if (e.code === 'Space') { e.preventDefault(); cardInner.classList.toggle('is-flipped'); }
-        else if (e.code === 'ArrowRight') nextCard();
-        else if (e.code === 'ArrowLeft') prevCard();
+
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (cardInner) cardInner.classList.toggle('is-flipped');
+        } else if (e.code === 'ArrowRight') {
+            nextCard();
+        } else if (e.code === 'ArrowLeft') {
+            prevCard();
+        }
     });
 }
 
@@ -163,28 +233,53 @@ function parseAndAdd(text) {
 }
 
 function startApp() {
-    document.getElementById('importer').style.display = 'none';
-    document.getElementById('appView').style.display = 'flex';
-    document.getElementById('utilFooter').style.display = 'flex';
-    document.getElementById('searchWrapper').style.display = 'block';
-    document.getElementById('replaceBtn').style.display = 'inline-block';
+    const importer = document.getElementById('importer');
+    const appView = document.getElementById('appView');
+
+    // Only try to change style if the elements actually exist
+    if (importer) {
+        importer.style.display = 'none';
+    } else {
+        console.warn("UI Warning: #importer element not found.");
+    }
+
+    if (appView) {
+        appView.style.display = 'flex'; // Changed from 'block' to 'flex' for your new layout
+    } else {
+        console.error("Critical Error: #appView element not found. App cannot start.");
+        return; 
+    }
+
+    updateCard();
 }
 
 function updateCard() {
     if (filteredCards.length === 0) {
-        document.getElementById('engDisplay').innerText = "Empty set";
-        document.getElementById('spaDisplay').innerText = "Check filters";
-        statusDisplay.innerText = "0 / 0";
+        // Use optional chaining or checks to prevent the crash
+        const eng = document.getElementById('engDisplay');
+        const spa = document.getElementById('spaDisplay');
+        if (eng) eng.innerText = "Empty set";
+        if (spa) spa.innerText = "Check filters";
         return;
     }
+
     const card = filteredCards[currentIndex];
     cardInner.classList.remove('is-flipped');
+
+    // Small delay to allow the flip animation to reset
     setTimeout(() => {
-        document.getElementById('catFront').innerText = card.catF;
-        document.getElementById('catBack').innerText = card.catB;
-        document.getElementById('engDisplay').innerText = card.front;
-        document.getElementById('spaDisplay').innerText = card.back;
-        statusDisplay.innerText = `${currentIndex + 1} / ${filteredCards.length}`;
+        const cf = document.getElementById('catFront');
+        const cb = document.getElementById('catBack');
+        const ef = document.getElementById('engDisplay');
+        const eb = document.getElementById('spaDisplay');
+        const st = document.getElementById('status');
+
+        // Only set text if the element actually exists
+        if (cf) cf.innerText = card.catF;
+        if (cb) cb.innerText = card.catB;
+        if (ef) ef.innerText = card.front;
+        if (eb) eb.innerText = card.back;
+        if (st) st.innerText = `${currentIndex + 1} / ${filteredCards.length}`;
     }, 100);
 }
 
@@ -199,20 +294,42 @@ function shuffleDeck() {
 
 function resetSearch() { searchBar.value = ""; applyFilters(false); }
 
+
 function updateAppTitle(title) {
+    if (!title) return;
     document.title = title;
-    const h2 = document.querySelector('#importer h2');
-    if (h2) h2.innerText = title;
+    
+    // Look for the specific H2 inside the importer div
+    const importerHeader = document.querySelector('#importer h2');
+    
+    if (importerHeader) {
+        importerHeader.innerText = title;
+    } else {
+        console.warn("UI Warning: #importer h2 not found. Title updated in browser tab only.");
+    }
 }
 
 function handleCardClick(e) {
-    const btn = e.target.closest('.speaker-btn');
-    if (btn) {
+    // 1. Check if the user clicked the speaker button (or the icon inside it)
+    const speakerBtn = e.target.closest('.speaker-btn');
+    
+    if (speakerBtn) {
+        // Stop the click from "bubbling up" and flipping the card
         e.stopPropagation();
-        const lang = btn.getAttribute('data-lang');
-        const text = (lang === 'en') ? filteredCards[currentIndex].front : filteredCards[currentIndex].back;
+        
+        const lang = speakerBtn.getAttribute('data-lang');
+        const card = filteredCards[currentIndex];
+        
+        if (!card) return;
+        
+        const text = (lang === 'en') ? card.front : card.back;
         speak(text, lang);
-    } else cardInner.classList.toggle('is-flipped');
+    } else {
+        // 2. If they clicked anywhere else on the card (the middle 70%), flip it
+        if (cardInner) {
+            cardInner.classList.toggle('is-flipped');
+        }
+    }
 }
 
 function speak(text, langCode) {

@@ -1,14 +1,4 @@
 /* GLOBAL STYLES */
-body {
-    font-family: system-ui, -apple-system, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: ivory;
-    color: darkslategrey;
-    display: flex;
-    flex-direction: column;
-    min-height: 100dvh;
-}
 
 /* HEADER */
 header {
@@ -111,25 +101,7 @@ header {
     gap: 0.5rem;
 }
 
-.card-container {
-    width: 90vw;
-    max-width: 25rem;
-    height: 55vh;
-    perspective: 60rem;
-}
-
-.card-inner {
-    position: relative;
-    width: 100%; height: 100%;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
-    cursor: pointer;
-}
-
-.card-inner.is-flipped { transform: rotateY(180deg); }
-
 .card-front { background-color: snow; border: 0.15rem solid lightblue; }
-.card-back { background-color: mintcream; transform: rotateY(180deg); border: 0.15rem solid lightgreen; }
 
 .utility-footer {
     padding: 1rem;
@@ -147,14 +119,6 @@ header {
     color: white;
     font-weight: bold;
     cursor: pointer;
-}
-
-#version-container {
-    text-align: center;
-    padding: 0.5rem 0;
-    font-size: 0.7rem;
-    background: lightgrey;
-    color: dimgrey;
 }
 
 .modal-content {
@@ -198,24 +162,6 @@ header {
     text-align: center;
 }
 
-/* NEW */
-
-.card-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    display: flex;
-    flex-direction: column; /* Stack header, middle, footer */
-    align-items: center;
-    border-radius: 1rem;
-    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.2);
-    text-align: center;
-    box-sizing: border-box;
-    overflow: hidden; /* Keep everything inside the rounded corners */
-    padding: 0 !important; /* Remove any internal padding so segments touch the edges */
-    justify-content: space-between; /* Ensures exact distribution */
-}
 
 /* 1. Fixed Header Area (15% of height) */
 .category-label {
@@ -258,4 +204,157 @@ header {
     cursor: pointer;
     font-size: 1.3rem;
     border-radius: 0 0 1rem 1rem;
+}
+
+/* Styling for the Navigation Zones */
+.nav-zone {
+    position: absolute;
+    top: 0;
+    width: 15%;
+    height: 85%;
+    z-index: 10;
+    display: flex;
+    align-items: center; /* Vertically centers the arrow */
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+/* The Watermark Arrows */
+.nav-arrow-watermark {
+    font-size: 2.5rem;
+    color: rgba(0, 0, 0, 0.1); /* Very subtle gray */
+    font-weight: bold;
+    user-select: none;
+    pointer-events: none; /* Let the click pass through to the zone */
+}
+
+/* Subtle feedback when the user taps */
+.nav-zone:active {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.nav-zone.left { left: 0; }
+.nav-zone.right { right: 0; }
+
+/* Ensure the body and wrapper take full height */
+body, html {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* Prevent double scrolling */
+}
+
+/* Remove any old navigation button styles that might be cluttering the screen */
+.nav-btns { 
+    display: none !important; 
+}
+
+/* Make sure the whole page doesn't scroll, only the card phrase if needed */
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Lock the body to the screen height */
+    margin: 0;
+}
+
+/* Header takes what it needs, the App View takes EVERYTHING else */
+
+#appView {
+    flex: 1; /* This pushes the footer to the very bottom */
+    display: flex;
+    flex-direction: column;
+}
+
+.card-container {
+    flex: 1; 
+    position: relative;
+    width: 100%;
+}
+
+.card-inner {
+    height: 100%; /* The card now matches the container height */
+    width: 100%;
+}
+
+#version-container {
+    height: 30px; /* Give the footer a fixed, small height */
+    flex-shrink: 0; /* Prevent the footer from being squished */
+}
+
+/* This ensures we don't see the "mirror" of the other side */
+.card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden; /* CRITICAL: Hides the mirror image */
+    -webkit-backface-visibility: hidden; /* Safari support */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* The back side must start already rotated 180 degrees */
+.card-back {
+    transform: rotateY(180deg);
+    background-color: #f0f8ff; /* Optional: slight color shift for the back */
+}
+
+/* The container that actually does the animation */
+.card-inner.is-flipped {
+    transform: rotateY(180deg);
+}
+
+/* NEW */
+
+/* 1. The container that holds the 3D space */
+.card-container {
+    perspective: 1000px;
+    flex: 1;
+    width: 100%;
+}
+
+/* 2. The element that actually rotates */
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d; /* Required for 3D faces to exist */
+}
+
+/* 3. Common styles for both faces */
+.card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    
+    /* This is the magic line that stops the mirroring */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden; 
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+/* 4. Front Face specifically */
+.card-front {
+    background-color: ivory; /* Front color */
+    z-index: 2; /* Ensures front is on top initially */
+}
+
+/* 5. Back Face specifically */
+.card-back {
+    background-color: #f0f4f8; /* Different color for the back */
+    transform: rotateY(180deg); /* Pre-flip it so it faces "away" */
+}
+
+/* 6. The flip action */
+.card-inner.is-flipped {
+    transform: rotateY(180deg);
 }
