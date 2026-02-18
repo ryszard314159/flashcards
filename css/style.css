@@ -1,0 +1,375 @@
+/* --- Global Reset --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    /* Prevents the 'jump' on mobile browsers when URL bars hide */
+    overflow: hidden; 
+}
+
+body {
+    font-family: sans-serif;
+    display: grid;
+    /* Top-level Body Grid: Header, Card Area, Footer */
+    grid-template-rows: 5vh 90vh 5vh;
+    min-height: 100vh;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: whitesmoke;
+}
+
+/* --- Header Area (3x1 Grid) --- */
+/* style.css */
+
+.app-header {
+    display: grid;
+    /* 15% Counter | 70% Search | 15% Menu Zone */
+    grid-template-columns: 15% 70% 15%;
+    align-items: stretch; /* Stretch children vertically to fill 10vh */
+    padding: 0; /* Remove padding so button can touch the edges */
+    background-color: white;
+    border-bottom: 0.1rem solid lightgray;
+}
+
+#card-counter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: slategray;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+}
+
+.search-container input {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border-radius: 2rem;
+    border: 0.1rem solid lightgray;
+    background-color: whitesmoke;
+    outline: none;
+}
+
+/* The "Big Target" Menu Button */
+#menuBtn {
+    background: none;
+    border: none;
+    font-size: 1.8rem; /* Slightly larger icon */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%; /* Fills the 10vh header height */
+    transition: background-color 0.2s;
+}
+
+#menuBtn:active {
+    background-color: whitesmoke; /* Visual feedback for the tap */
+}
+
+/* --- Main View (3-Column Grid) --- */
+/* Main View (The 80vh Row) */
+.card-view {
+    display: grid;
+    /* Hard rails for navigation zones */
+    grid-template-columns: 15% 70% 15%;
+    
+    /* Stretch zones from Header to Footer */
+    align-items: stretch; 
+    
+    /* Use 100% of the 80vh allocated by the body grid */
+    height: 100%; 
+    width: 100%; 
+    
+    /* Restoring the 3D Depth */
+    perspective: 100rem; 
+    
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Force elements into their specific columns */
+#prevZone {
+    grid-column: 1; /* First 15% */
+    height: 100%;
+    z-index: 10;
+    /* background: rgba(255, 0, 0, 0.1); /* Temporary: Red tint to see the zone */
+}
+
+.card-container {
+    grid-column: 2; /* Middle 70% */
+    place-self: center; /* Center horizontally AND vertically */
+    width: 100%;
+    height: 100%;
+}
+
+#nextZone {
+    grid-column: 3; /* Last 15% */
+    height: 100%;
+    z-index: 10;
+    /* background: rgba(0, 0, 255, 0.1); /* Temporary: Blue tint to see the zone */
+}
+
+/* Navigation Overlay Zones */
+.nav-zone {
+    height: 100%;
+    z-index: 10;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    /* Optional: helps visualize during debugging */
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+.nav-zone:active {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.card-inner.is-flipped {
+    transform: rotateY(180deg);
+}
+
+.card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+}
+
+.card-front {
+    background-color: ivory;
+}
+
+.card-back {
+    background-color: aliceblue;
+    transform: rotateY(180deg);
+}
+
+.label {
+    font-size: 0.8rem;
+    color: darkgray;
+    letter-spacing: 0.1rem;
+}
+
+.phrase {
+    font-size: 2rem;
+    text-align: center;
+    color: black;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+}
+
+.audio-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* --- Footer Area --- */
+.app-footer {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    background-color: white;
+    border-top: 0.1rem solid lightgray;
+    color: slategray;
+    font-size: 0.8rem;
+}
+
+#update-badge {
+    color: red;
+    font-weight: bold;
+    margin-left: 0.5rem;
+}
+
+/* --- Menu Modal --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0; /* Shorthand for top/bottom/left/right: 0 */
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999; /* Ensure this is the highest number in your CSS */
+    display: none; 
+}
+
+.modal-overlay.is-visible {
+    display: block;
+}
+
+.menu-modal {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: white;
+    width: 16rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 2rem rgba(0,0,0,0.3);
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: 40px 1fr; /* Icon column and Label column */
+    gap: 0;
+}
+
+.menu-item {
+    display: contents; /* Allows children to participate in the grid */
+    cursor: pointer;
+}
+
+.menu-item div, .menu-item button {
+    padding: 1rem;
+    border-bottom: 0.1rem solid whitesmoke;
+    background: white;
+    display: flex;
+    align-items: center;
+}
+
+.menu-item:active div {
+    background: whitesmoke;
+}
+
+.menu-icon { justify-content: center; }
+.menu-label { font-weight: 500; color: black; }
+
+/* Utility class to show modal */
+.is-visible { display: block !important; }
+
+.settings-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    width: 90%;
+    max-width: 25rem;
+    max-height: 80vh;
+    border-radius: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5rem;
+    background: whitesmoke;
+    border-bottom: 0.1rem solid lightgray;
+}
+
+.settings-content { padding: 1.5rem; }
+
+.settings-section { margin-bottom: 2rem; }
+
+.settings-section h4 {
+    color: slategray;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    border-bottom: 0.1rem solid whitesmoke;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.setting-item label { font-size: 0.9rem; color: black; }
+
+.setting-item input[type="number"] {
+    padding: 0.5rem;
+    border: 0.1rem solid lightgray;
+    border-radius: 0.4rem;
+}
+
+.settings-actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+.primary-btn {
+    background-color: steelblue;
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.primary-btn:active {
+    background-color: midnightblue;
+}
+
+#closeSettings {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+/* style.css */
+
+.category-grid {
+    max-height: 50vh; /* Scroll if you have dozens of categories */
+    overflow-y: auto;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem;
+    border-bottom: 1px solid #eee;
+    font-size: 1.1rem;
+}
+
+.category-item label {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+}
+
+.category-item input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-right: 1rem;
+}
+
+/* DEBUGGING COLORS */
+#prevZone { background: lightblue; }
+#nextZone { background: lightpink; }

@@ -1,0 +1,13 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+   <style>
+       .rounded {
+             fill:black;stroke:black;
+             stroke-linejoin:round;
+             stroke-linecap:round;
+             stroke-miterlimit:4;
+       }
+   </style>
+   <path id="horizontal" class="rounded" d="M8 92 H92" stroke-width="16"/>
+   <path id="vertical" class="rounded" d="M50 75 V4" stroke-width="8" />
+   <path id="arrowhead" class="rounded" d="M40 30 H60 L50 4 Z" stroke-width="8" />
+</svg>

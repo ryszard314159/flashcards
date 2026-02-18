@@ -2,93 +2,127 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flashcards</title>
-    <link rel="stylesheet" href="style.css">
-    <script defer type="module" src="script.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Immersive Flashcards</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script defer type="module" src="src/app.js"></script>
 </head>
 <body>
 
-<header>
-    <div class="header-top">
-        <div id="status">0 / 0</div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button class="btn-outline" id="replaceBtn" style="display:none">Replace</button>
-            <button class="btn-outline" onclick="document.getElementById('fileInput').click()">+ Add</button>
-            <button id="settingsBtn" aria-label="Menu">&#8942;</button>
+    <header class="app-header">
+        <div id="card-counter">0 / 0</div>
+        <div class="search-container">
+            <input type="text" id="searchBar" placeholder="Search...">
         </div>
-    </div>
-    <div class="search-container" id="searchWrapper" style="display:none">
-        <input type="text" id="searchBar" placeholder="Search phrases..." autocomplete="off">
-    </div>
-    <input type="file" id="fileInput" hidden accept=".deck,.txt">
-</header>
-
-<div id="importer" style="text-align: center; padding: 2rem;">
-    <h2>Import a .deck file</h2>
-    <p>Please select your study file to begin.</p>
-</div>
-
-<main class="app-container" id="appView" style="display:none">
-    <div class="card-container" id="cardCont">
-        <div class="nav-zone left" id="prevZone"><span class="nav-arrow-watermark">&#10094;</span></div>
-        <div class="nav-zone right" id="nextZone"><span class="nav-arrow-watermark">&#10095;</span></div>
-        <div class="card-inner" id="cardInner">
-            <div class="card-face card-front">
-                <span class="category-label" id="catFront"></span>
-                <div class="phrase" id="engDisplay"></div>
-                <button class="speaker-btn" data-lang="en">🔊</button>
-            </div>
-
-            <div class="card-face card-back">
-                <span class="category-label" id="catBack"></span>
-                <div class="phrase" id="spaDisplay"></div>
-                <button class="speaker-btn" data-lang="es">🔊</button>
+        <button id="menuBtn" aria-label="Menu">&vellip;</button>
+    </header>
+     <main class="card-view">
+        <div id="prevZone" class="nav-zone"></div>
+        <div class="card-container">
+            <div class="card-inner" id="cardInner">
+                <div class="card-face card-front">
+                    <span class="label" id="frontLabel">FRONT</span>
+                    <div class="phrase" id="frontDisplay">Loading...</div>
+                    <button class="audio-btn">🔊</button>
+                </div>
+                <div class="card-face card-back">
+                    <span class="label" id="backLabel">BACK</span>
+                    <div class="phrase" id="backDisplay">...</div>
+                    <button class="audio-btn">🔊</button>
+                </div>
             </div>
         </div>
-    </div>
-</main>
+        <div id="nextZone" class="nav-zone"></div>
+    </main>
 
-
-<!-- TODO <div class="modal-content">
-    <button id="closeSettings" aria-label="Close">&times;</button>
-    <h3 style="margin-top: 0;">Menu</h3>
-    ...
-</div> -->
-
-
-<div id="settingsModal" class="modal">
-    <div class="modal-content">
-        <button id="closeSettings" aria-label="Close">&times;</button>    
-        <h3 style="margin-top: 0;">Study Settings</h3>
-        <div class="filter-controls">
-            <strong>Categories:</strong>
-            <div style="display: flex; gap: 0.5rem;">
-                <button class="btn-mini" id="selectAll">All</button>
-                <button class="btn-mini" id="selectNone">None</button>
-            </div>
+    <footer class="app-footer">
+        <div></div> <div class="version-info">
+            <span id="version-tag">v1.0.0</span>
+            <span id="update-badge" style="display:none;">UPDATE</span>
         </div>
-        
-        <div id="categoryList"></div>
+        <div></div>
+    </footer>
 
-        <div class="setting-group">
-            <div class="setting-row">
-                <span>Limit to</span>
-                <input type="number" id="sampleSize" min="1" value="3">
-                <!-- <input type="number" id="sampleSize" placeholder="Limit (optional)"> -->
-                <span>cards</span>
+    <div id="menuOverlay" class="modal-overlay">
+        <nav class="menu-modal">
+            <div class="menu-grid">
+                <div class="menu-item" id="helpBtn">
+                    <div class="menu-icon">❓</div>
+                    <div class="menu-label">Help</div>
+                </div>
+                <div class="menu-item" id="shareBtn">
+                    <div class="menu-icon">📤</div>
+                    <div class="menu-label">Share</div>
+                </div>
+                <div class="menu-item" id="exportBtn">
+                    <div class="menu-icon">📥</div>
+                    <div class="menu-label">Export .deck</div>
+                </div>
+                <div class="menu-item" id="importBtn">
+                    <div class="menu-icon">📁</div>
+                    <div class="menu-label">Import .deck</div>
+                </div>
+                <div class="menu-item" id="deckBtn">
+                    <div class="menu-icon">🗂️</div>
+                    <div class="menu-label">Select Categories</div>
+                </div>
+                <div class="menu-item" id="settingsBtn">
+                    <div class="menu-icon">⚙️</div>
+                    <div class="menu-label">Settings...</div>
+                </div>
             </div>
-            <button class="btn-action" id="applySettings" style="width: 100%; margin-top: 1rem;">Apply & Restart</button>
+        </nav>
+    </div>
+
+    <div id="deckOverlay" class="modal-overlay">
+        <div class="settings-modal">
+            <h2>Select Categories</h2>
+            <div id="categoryList" class="category-grid">
+                </div>
+            <button id="closeDeck" class="save-btn">Done</button>
         </div>
     </div>
-</div>
 
-<footer id="version-container" style="text-align: center; padding: 5px; background: ivory; border-top: 1px solid #ddd;">
-    <span id="version-tag" style="font-size: 0.8rem; color: #666;"></span>
-    <span id="update-badge" style="display:none; color:red; margin-left:10px; font-weight:bold; cursor:pointer;" title="Click to update">
-        (NEW UPDATE AVAILABLE)
-    </span>
-</footer>
+    <div id="settingsOverlay" class="modal-overlay">
+        <div class="settings-modal">
+            <header class="settings-header">
+                <h3>Settings</h3>
+                <button id="closeSettings">✕</button>
+            </header>
+            
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h4>Study Session</h4>
+                    <div class="setting-item">
+                        <label for="sessionSize">Session Size (0 for all)</label>
+                        <input type="number" id="sessionSize" min="0" value="5">
+                    </div>
+                </div>
 
+                <div class="settings-section">
+                    <h4>SRS Calibration</h4>
+                    <div class="setting-item">
+                        <label for="srsFactor">Update Factor (0.1 - 0.9)</label>
+                        <input type="range" id="srsFactor" min="0.1" max="0.9" step="0.05" value="0.9">
+                        <span id="srsFactorVal">0.9</span>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Audio</h4>
+                    <div class="setting-item">
+                        <label for="speechRate">Speech Rate</label>
+                        <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button id="saveSettingsBtn" class="primary-btn">Save & Restart Session</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+   <input type="file" id="filePicker" accept=".deck,.txt" style="display: none;">
 </body>
 </html>
