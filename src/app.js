@@ -403,3 +403,26 @@ if (document.readyState === 'complete') {
 } else {
     window.addEventListener('load', init);
 }
+
+function playAudio() {
+    const card = state.currentSessionDeck[state.currentCardIndex];
+    if (!card) return;
+
+    // Stop any existing speech
+    window.speechSynthesis.cancel();
+
+    // Determine text based on flip state
+    const textToSpeak = state.isFlipped ? card.backText : card.frontText;
+    
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    
+    // Use the speech rate from our settings slider
+    utterance.rate = state.settings.speechRate || 1.0;
+    
+    // Optional: Auto-detect language if your labels are "Spanish" or "French"
+    // utterance.lang = 'en-US'; 
+
+    window.speechSynthesis.speak(utterance);
+    
+    console.log(`Speaking (${state.isFlipped ? 'Back' : 'Front'}): ${textToSpeak}`);
+}
