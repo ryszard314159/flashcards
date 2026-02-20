@@ -61,7 +61,7 @@ function init() {
 
     // 2. ALWAYS setup listeners so buttons work!
     setupEventListeners();
-    setupCardListeners();
+    // setupCardListeners();
     syncSettingsToUI();
 
     if (state.masterDeck.length > 0) {
@@ -185,6 +185,8 @@ function setupEventListeners() {
         const checkboxes = ui.categoryList.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
     });
+
+    setupCardListeners();
 }
 
 // Example of how to handle the 4 distinct actions
