@@ -113,6 +113,8 @@ body {
     place-self: center; /* Center horizontally AND vertically */
     width: 100%;
     height: 100%;
+    z-index: 5; /* Higher than zones */
+    position: relative;
 }
 
 #nextZone {
@@ -125,7 +127,7 @@ body {
 /* Navigation Overlay Zones */
 .nav-zone {
     height: 100%;
-    z-index: 10;
+    z-index: 1;
     cursor: pointer;
     transition: background-color 0.2s;
     /* Optional: helps visualize during debugging */
@@ -142,6 +144,7 @@ body {
     height: 100%;
     transition: transform 0.6s;
     transform-style: preserve-3d;
+    z-index: 6; /* Topmost */
 }
 
 .card-inner.is-flipped {
@@ -157,9 +160,19 @@ body {
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    padding: 2rem;
+    padding: 0;
     border-radius: 1.5rem;
     box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.card-face-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.5rem;
+    box-sizing: border-box;
 }
 
 .card-front {
@@ -175,6 +188,34 @@ body {
     font-size: 0.8rem;
     color: darkgray;
     letter-spacing: 0.1rem;
+}
+
+.label {
+    flex-grow: 1;
+    text-align: center;
+    font-size: 0.8rem;
+    letter-spacing: 0.1rem;
+    color: darkgray; /* Or your preferred muted color */
+}
+
+.freq-btn {
+    background: none;
+    border: 1px solid steelblue;
+    color: steelblue;
+    border-radius: 4px;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.freq-btn:active {
+    background-color: steelblue;
+    color: white;
 }
 
 .phrase {
@@ -275,8 +316,18 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    /* The new "breathing room" additions */
+    padding: 2rem; 
+    box-sizing: border-box; /* Crucial: ensures padding doesn't push the width over 90% */
 }
 
+/* Ensure the title is centered and spaced */
+.settings-modal h2 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: darkslategray;
+}
 .settings-header {
     display: flex;
     justify-content: space-between;
@@ -342,19 +393,24 @@ body {
 
 /* style.css */
 
+/* Category Grid */
 .category-grid {
-    max-height: 50vh; /* Scroll if you have dozens of categories */
+    border-top: 0.06rem solid gainsboro;
+    border-bottom: 0.06rem solid gainsboro;
+    max-height: 40vh;
     overflow-y: auto;
-    margin: 1.5rem 0;
-    text-align: left;
+    margin: 1rem 0;
 }
 
 .category-item {
     display: flex;
     align-items: center;
-    padding: 0.8rem;
-    border-bottom: 1px solid #eee;
-    font-size: 1.1rem;
+    padding: 0.75rem 0.6rem;
+    border-bottom: 0.06rem solid snow;
+}
+
+.category-item:last-child {
+    border-bottom: none;
 }
 
 .category-item label {
@@ -362,12 +418,136 @@ body {
     align-items: center;
     width: 100%;
     cursor: pointer;
+    font-weight: 500;
+    color: darkslategray;
 }
 
 .category-item input[type="checkbox"] {
     width: 1.2rem;
     height: 1.2rem;
     margin-right: 1rem;
+    accent-color: steelblue; 
+}
+
+/* Bulk Action Buttons Container */
+.bulk-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    justify-content: center;
+}
+
+/* Secondary Buttons (All/None) */
+.secondary-btn {
+    background: whitesmoke;
+    border: 0.06rem solid silver;
+    padding: 0.3rem 1rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: dimgray;
+    transition: background 0.2s;
+}
+
+.secondary-btn:hover {
+    background: lightgray;
+}
+
+.save-btn {
+    background: steelblue;
+    color: white;
+    padding: 0.8rem 2rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Center the Title */
+#deckOverlay h2 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: darkslategray;
+}
+
+/* Ensure the face itself is a container for the grid */
+
+
+/* The Layout Engine */
+.card-grid {
+    display: grid;
+    grid-template-rows: auto 1fr auto; 
+    width: 100%;
+    height: 100%; /* Spans the full height of the card face */
+}
+
+/* Header & Footer Styling */
+.card-header, .card-footer {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: rgba(70, 130, 180, 0.05); /* Very light steelblue tint */
+}
+
+.card-header {
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(70, 130, 180, 0.1);
+}
+
+.card-footer {
+    justify-content: center;
+    border-top: 1px solid rgba(70, 130, 180, 0.1);
+}
+
+.card-header, .card-footer {
+    position: relative;
+    z-index: 10; /* Ensures buttons are physically 'above' the flip zone */
+}
+
+/* The Clickable Body */
+.card-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    background: transparent;
+    z-index: 1;
+}
+
+/* Frequency Buttons Styling */
+.freq-btn {
+    background: white;
+    border: 2px solid steelblue;
+    color: steelblue;
+    border-radius: 0.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+}
+
+.freq-btn:active {
+    transform: scale(0.9);
+    background: steelblue;
+    color: white;
+}
+
+/* Visual Feedback Glows */
+.feedback-up {
+    box-shadow: 0 0 20px 5px rgba(46, 204, 113, 0.6) !important;
+    transition: box-shadow 0.2s ease;
+}
+
+.feedback-down {
+    box-shadow: 0 0 20px 5px rgba(231, 76, 60, 0.6) !important;
+    transition: box-shadow 0.2s ease;
 }
 
 /* DEBUGGING COLORS */

@@ -2,6 +2,15 @@
  * src/state.js
  */
 
+export const FREQUENCY_SETTINGS = {
+    default: 0,
+    delta: 1,
+    min: -9,
+    max: 9
+};
+export const DEFAULT_SESSION_SIZE = 5;
+export const DEFAULT_TEMPERATURE = 1.0;
+
 export const state = {
     isFlipped: false,
     currentCardIndex: 0,
@@ -26,13 +35,19 @@ export const state = {
     }
 };
 
-export function saveToDisk() {
-    localStorage.setItem('flashcardSettings', JSON.stringify(state.settings));
-}
+export const updateCardWeight = (cardId, adjustment) => {
+    const card = state.masterDeck.find(c => c.id === cardId);
+    if (!card) return;
 
-export function loadFromDisk() {
-    const saved = localStorage.getItem('flashcardSettings');
-    if (saved) {
-        Object.assign(state.settings, JSON.parse(saved));
-    }
-}
+    // Ensure weight stays within a reasonable range (e.g., 1 to 10)
+    const newWeight = (card.weight || 5) + adjustment;
+    card.weight = Math.max(1, Math.min(newWeight, 10));
+
+    console.log(`Card ${cardId} weight updated to: ${card.weight}`);
+    
+    // Suggestion: Trigger a save to LocalStorage here 
+    // to ensure the Service Worker doesn't lose progress on refresh.
+};
+
+
+

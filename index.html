@@ -16,20 +16,47 @@
         </div>
         <button id="menuBtn" aria-label="Menu">&vellip;</button>
     </header>
-     <main class="card-view">
+    <main class="card-view">
         <div id="prevZone" class="nav-zone"></div>
         <div class="card-container">
             <div class="card-inner" id="cardInner">
+                
                 <div class="card-face card-front">
-                    <span class="label" id="frontLabel">FRONT</span>
-                    <div class="phrase" id="frontDisplay">Loading...</div>
-                    <button class="audio-btn">🔊</button>
+                    <div class="card-grid">
+                        <header class="card-header">
+                            <button class="freq-btn freq-down">v</button>
+                            <span id="frontLabel" class="label">FRONT</span>
+                            <button class="freq-btn freq-up">^</button>
+                        </header>
+                        
+                        <div class="card-body">
+                            <div class="phrase" id="frontDisplay">Loading...</div>
+                        </div>
+
+                        <footer class="card-footer">
+                            <button class="audio-btn">🔊</button>
+                        </footer>
+                    </div>
                 </div>
+
                 <div class="card-face card-back">
-                    <span class="label" id="backLabel">BACK</span>
-                    <div class="phrase" id="backDisplay">...</div>
-                    <button class="audio-btn">🔊</button>
+                    <div class="card-grid">
+                        <header class="card-header">
+                            <button class="freq-btn freq-down">v</button>
+                            <span id="backLabel" class="label">BACK</span>
+                            <button class="freq-btn freq-up">^</button>
+                        </header>
+
+                        <div class="card-body">
+                            <div class="phrase" id="backDisplay">...</div>
+                        </div>
+
+                        <footer class="card-footer">
+                            <button class="audio-btn">🔊</button>
+                        </footer>
+                    </div>
                 </div>
+
             </div>
         </div>
         <div id="nextZone" class="nav-zone"></div>
@@ -77,9 +104,18 @@
     <div id="deckOverlay" class="modal-overlay">
         <div class="settings-modal">
             <h2>Select Categories</h2>
+            
+            <div class="bulk-actions">
+                <button id="selectAllBtn" class="secondary-btn">All</button>
+                <button id="selectNoneBtn" class="secondary-btn">None</button>
+            </div>
+
             <div id="categoryList" class="category-grid">
-                </div>
-            <button id="closeDeck" class="save-btn">Done</button>
+            </div>
+
+            <div class="modal-actions">
+                <button id="closeDeck" class="save-btn">Apply</button>
+            </div>
         </div>
     </div>
 
@@ -96,6 +132,18 @@
                     <div class="setting-item">
                         <label for="sessionSize">Session Size (0 for all)</label>
                         <input type="number" id="sessionSize" min="0" value="5">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>Algorithm Tuning</h4>
+                    <div class="setting-item">
+                        <label for="tempSlider">Randomness (Temperature)</label>
+                        <div class="slider-group">
+                            <input type="range" id="tempSlider" min="0.5" max="5.0" step="0.5" value="1.0">
+                            <span id="tempValue">1.0</span>
+                        </div>
+                        <small>High = Random, Low = Focus on Hard cards</small>
                     </div>
                 </div>
 
