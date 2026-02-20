@@ -134,11 +134,11 @@ function setupEventListeners() {
     });
 
     // Card Interaction
-    ui.cardInner?.addEventListener('click', (e) => {
-        console.log("DEBUG: Card clicked! Target:", e.target);
-        state.isFlipped = !state.isFlipped;
-        ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
-    });
+    // ui.cardInner?.addEventListener('click', (e) => {
+    //     console.log("DEBUG: Card clicked! Target:", e.target);
+    //     state.isFlipped = !state.isFlipped;
+    //     ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
+    // });
 
     ui.prevZone?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -190,6 +190,7 @@ function setupEventListeners() {
 // Example of how to handle the 4 distinct actions
 function setupCardListeners() {
     // 1. Check if we already attached this to prevent "Double Flipping"
+    console.log("DEBUG: in setupCardListeners. cardInner is:", ui.cardInner);
     if (ui.cardInner.dataset.initialized === 'true') return;
 
     ui.cardInner.addEventListener('click', (e) => {
@@ -198,7 +199,8 @@ function setupCardListeners() {
         
         if (btn) {
             // If it's a button, handle logic and STOP the event from reaching cardInner toggle
-            e.stopPropagation(); 
+            e.stopPropagation();
+            e.preventDefault();
             if (btn.classList.contains('freq-up')) handleFrequencyChange(1);
             if (btn.classList.contains('freq-down')) handleFrequencyChange(-1);
             if (btn.classList.contains('audio-btn')) playAudio();
@@ -207,11 +209,10 @@ function setupCardListeners() {
 
         // 2. Only flip if we clicked the card body or header (NOT a button)
         // We use toggle() directly on the class for reliability
-        const willBeFlipped = !ui.cardInner.classList.contains('is-flipped');
-        ui.cardInner.classList.toggle('is-flipped', willBeFlipped);
-        state.isFlipped = willBeFlipped;
+        state.isFlipped = !ui.cardInner.classList.contains('is-flipped');
+        ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
 
-        console.log("Card Flipped:", state.isFlipped);
+        console.log("setupCardListeners: state.isFlipped:", state.isFlipped);
     });
 
     // Mark as initialized
@@ -240,6 +241,7 @@ function handleFrequencyChange(change) {
 
     save(KEYS.DECK, state.masterDeck);
 
+    console.log(`handleFrequencyChange: Cards "${currentCard.id}" change: ${change}`);
     console.log(`handleFrequencyChange: Cards "${currentCard.id}" factor: ${currentCard.frequencyFactor}`);
     
     // Visual Feedback
