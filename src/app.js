@@ -1,16 +1,16 @@
 /**
  * src/app.js
  */
-import { DEFAULT_SALT_LENGTH } from '../../hpass/config.js';
 import { deckReader, save, load, KEYS } from './io.js';
-import { state } from './state.js';
+import { SPEECH_RATE, state } from './state.js';
 import { FREQUENCY_SETTINGS } from './state.js';
-import { DEFAULT_SESSION_SIZE } from './state.js';
-import { DEFAULT_TEMPERATURE } from './state.js';
+// import { DEFAULT_SESSION_SIZE } from './state.js';
+import { TEMPERATURE } from './state.js';
 
 let ui = {};
 
 function init() {
+    validateConfiguration();
     // 1. Force a layout recalculation
     window.dispatchEvent(new Event('resize'));
 
@@ -38,11 +38,10 @@ function init() {
         sessionSizeInput: document.getElementById('sessionSize'),
         settingsBtn: document.getElementById('settingsBtn'),
         settingsOverlay: document.getElementById('settingsOverlay'),
-        speechRateInput: document.getElementById('speechRate'),
-        srsFactorInput: document.getElementById('srsFactor'),
-        srsFactorVal: document.getElementById('srsFactorVal'),
-        tempSlider: document.getElementById('tempSlider'),
-        tempValue: document.getElementById('tempValue'),
+        speechRateInput: document.getElementById('speechRateInput'),
+        // srsFactorInput: document.getElementById('srsFactor'),
+        // srsFactorVal: document.getElementById('srsFactorVal'),
+        tempInput: document.getElementById('tempInput'),
     };
 
     // 2. Debugging Log
@@ -78,6 +77,30 @@ function init() {
     setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
     }, 50);
+}
+
+/**
+ * Custom Assertion: Fails loudly if condition is false.
+ * @param {boolean} condition - The truth to check.
+ * @param {string} message - Description of the expected state.
+ * @param {object} context - Optional data to log for debugging.
+ */
+function assert(condition, message, context = null) {
+    if (!condition) {
+        // We log the message AND the object separately
+        console.error(`ASSERTION FAILED: ${message}`);
+        if (context) console.dir(context); // console.dir shows the object structure clearly       
+        alert(`ASSERTION FAILED: ${message}`);
+        throw new Error(message);
+    }
+}
+
+function validateConfiguration() {
+    const x = FREQUENCY_SETTINGS;   
+    assert(typeof x.delta === 'number' && x.delta > 0, "Config: delta must be > 0");
+    assert(typeof x.min === 'number', "Config: min must be a number");
+    assert(typeof x.max === 'number', "Config: max must be a number");
+    assert(x.max - x.min > x.delta, "Config: max - min must be greater than delta", { min: x.min, max: x.max });
 }
 
 function setupEventListeners() {
@@ -129,9 +152,9 @@ function setupEventListeners() {
     });
 
     // SRS Slider Feedback
-    ui.srsFactorInput?.addEventListener('input', (e) => {
-        ui.srsFactorVal.textContent = e.target.value;
-    });
+    // ui.srsFactorInput?.addEventListener('input', (e) => {
+    //     ui.srsFactorVal.textContent = e.target.value;
+    // });
 
     // Card Interaction
     // ui.cardInner?.addEventListener('click', (e) => {
@@ -140,14 +163,15 @@ function setupEventListeners() {
     //     ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
     // });
 
+    ui.nextZone?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // navigate(1);
+        drawCard(); // No more navigate(1)!
+    });
+
     ui.prevZone?.addEventListener('click', (e) => {
         e.stopPropagation();
         navigate(-1);
-    });
-
-    ui.nextZone?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        navigate(1);
     });
 
     // File Import
@@ -186,6 +210,53 @@ function setupEventListeners() {
         checkboxes.forEach(cb => cb.checked = false);
     });
 
+    document.querySelectorAll('.adj-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.target; // 'tempInput' or 'speechRateInput'
+            const dir = parseInt(btn.dataset.dir); // 1 or -1
+            if (target === 'tempInput') {
+                ui.tempInput.value = (parseFloat(ui.tempInput.value) + (dir * TEMPERATURE.delta)).toFixed(1);
+                ui.tempInput.dispatchEvent(new Event('change'));
+            } else if (target === 'speechRateInput') {
+                ui.speechRateInput.value = (parseFloat(ui.speechRateInput.value) + (dir * SPEECH_RATE.delta)).toFixed(1);
+                ui.speechRateInput.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+
+    ui.speechRateInput?.addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value) || SPEECH_RATE.default;
+        const clamped = Math.max(SPEECH_RATE.min, Math.min(SPEECH_RATE.max, val));
+        e.target.value = clamped.toFixed(1);
+        state.settings.speechRate = clamped;
+        save(KEYS.SETTINGS, state.settings);
+        console.log(`Speech rate updated to: ${clamped}`);
+    });
+
+    ui.tempInput?.addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value) || TEMPERATURE.default;
+        const clamped = Math.max(TEMPERATURE.min, Math.min(TEMPERATURE.max, val));
+        e.target.value = clamped.toFixed(1);
+        state.settings.temperature = clamped;
+        // This is a business-logic requirement: changing temp affects the math engine
+        state.needsRecalc = true;
+        save(KEYS.SETTINGS, state.settings);
+        console.log(`Temperature updated to: ${clamped}`);
+    });
+
+    /**
+     * Double-click to Select All
+     * This allows one-click erasure/replacement
+     */
+    [ui.tempInput, ui.sessionSizeInput, ui.speechRateInput].forEach(el => {
+        el?.addEventListener('focus', (e) => {
+            // We use a tiny timeout because some browsers 
+            // reset the cursor AFTER the focus event fires, 
+            // which would undo our selection.
+            setTimeout(() => {  e.target.select();}, 50);
+        });
+    });
+
     setupCardListeners();
 }
 
@@ -222,32 +293,47 @@ function setupCardListeners() {
 }
 
 function handleFrequencyChange(change) {
-    const currentCard = state.currentSessionDeck[state.currentCardIndex];
-    if (!currentCard) {
-        console.error("No card found at index:", state.currentCardIndex);
-        console.log("Current Session Deck Length:", state.currentSessionDeck.length);
-        return;
-    }
+    const card = state.currentSessionDeck[state.currentCardIndex];
+    
+    // 1. Assert Entry State
+    assert(!!card, "No card selected for frequency change.");
+    assert(typeof card.frequencyFactor === 'number', "Card missing frequencyFactor", card);
+    assert(change === 1 || change === -1, "Invalid frequency change direction", { change });
 
-    // Initialize if missing
-    if (currentCard.frequencyFactor === undefined) {
-        currentCard.frequencyFactor = 0;
-    }
-
-    // Apply delta (+1 or -1)
-    let newValue = currentCard.frequencyFactor + (change * FREQUENCY_SETTINGS.delta);
-    currentCard.frequencyFactor = Math.max(
+    const newValue = card.frequencyFactor + (change * FREQUENCY_SETTINGS.delta);
+    
+    card.frequencyFactor = Math.max(
         FREQUENCY_SETTINGS.min, 
         Math.min(FREQUENCY_SETTINGS.max, newValue)
     );
 
-    save(KEYS.DECK, state.masterDeck);
+    // 4. Trigger Recalc
+    state.calculateProbabilities = true;
 
-    console.log(`handleFrequencyChange: Cards "${currentCard.id}" change: ${change}`);
-    console.log(`handleFrequencyChange: Cards "${currentCard.id}" factor: ${currentCard.frequencyFactor}`);
-    
-    // Visual Feedback
+    save(KEYS.DECK, state.masterDeck);
     provideVisualFeedback(change > 0 ? 'up' : 'down');
+}
+
+function updateProbabilities() {
+    const pool = state.currentSessionDeck;
+    const T = state.settings.temperature;
+
+    // Assertions: Ensure the "Hand" and the "Environment" are valid
+    assert(Array.isArray(pool) && pool.length > 0, "Cannot calculate probabilities for an empty pool.");
+    assert(typeof T === 'number' && T >= 0.01, "Temperature must be a number >= 0.01", { T });
+
+    const exponents = pool.map(card => {
+        assert(typeof card.frequencyFactor === 'number', "Pool card missing factor", card);
+        return Math.exp(card.frequencyFactor / T);
+    });
+
+    const sumExponents = exponents.reduce((a, b) => a + b, 0);
+    assert(sumExponents > 0, "Sum of exponents is zero (underflow error).", { exponents });
+
+    state.sessionProbabilities = exponents.map(exp => exp / sumExponents);
+    console.log("DEBUG: updateProbabilities: Updated probabilities for current session.",
+        { probabilities: state.sessionProbabilities });
+    state.calculateProbabilities = false;
 }
 
 function generateSessionDeck(pool, sessionSize, temperature = 1.0) {
@@ -288,6 +374,9 @@ function generateSessionDeck(pool, sessionSize, temperature = 1.0) {
         }
     }
 
+    console.log(`DEBUG: generateSessionDeck: Generated session of size ${session.length} from pool of ${pool.length} with temperature ${temperature}`);
+    console.log("DEBUG: Sample of 7 session cards:", session.slice(0, 7));
+
     return session;
 }
 
@@ -298,6 +387,45 @@ function navigate(direction) {
     if (deckSize === 0) return;
     state.currentCardIndex = (state.currentCardIndex + direction + deckSize) % deckSize;
     setTimeout(updateUI, 150);
+}
+
+/**
+ * Modified Navigation for Weighted Streaming
+ */
+function drawCard() {
+    // 1. Visual Reset
+    state.isFlipped = false;
+    ui.cardInner?.classList.remove('is-flipped');
+
+    if (state.calculateProbabilities) {
+        updateProbabilities();
+    }
+
+    // 2. The Logic: Draw a weighted index from the CURRENT session pool
+    // We pass our current session deck into the weighted picker
+    const nextCard = pickWeightedCard(state.currentSessionDeck, state.settings.temperature);
+    
+    // 3. Update the pointer so frequency buttons hit the right card
+    state.currentCardIndex = state.currentSessionDeck.indexOf(nextCard);
+
+    // 4. Animate and update
+    setTimeout(updateUI, 150);
+}
+
+// A helper to pick a single card based on weights
+function pickWeightedCard(pool, temperature = 1.0) {
+    if (!pool || pool.length === 0) return null;
+    
+    const T = Math.max(temperature, 0.01);
+    const weights = pool.map(card => Math.exp((card.frequencyFactor || 0) / T));
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    
+    let dart = Math.random() * totalWeight;
+    for (let i = 0; i < pool.length; i++) {
+        dart -= weights[i];
+        if (dart <= 0) return pool[i];
+    }
+    return pool[0];
 }
 
 function applySessionLogic() {
@@ -321,7 +449,9 @@ function applySessionLogic() {
 
     // const size = state.settings.sessionSize || DEFAULT_SESSION_SIZE;
     const size = filteredCards.length;
-    const temp = state.settings.temperature || DEFAULT_TEMPERATURE;
+    const temp = state.settings.temperature;
+
+    assert(temp >= 0.01, "Temperature must be at least 0.01 to avoid extreme distributions.", { temp });
 
     // Use our Softmax generator
     state.currentSessionDeck = generateSessionDeck(filteredCards, size, temp);
@@ -344,16 +474,17 @@ function updateUI() {
 
 function syncSettingsToUI() {
     if (ui.sessionSizeInput) ui.sessionSizeInput.value = state.settings.sessionSize;
-    if (ui.srsFactorInput) {
-        ui.srsFactorInput.value = state.settings.srsFactor;
-        ui.srsFactorVal.textContent = state.settings.srsFactor;
-    }
+    if (ui.tempInput) ui.tempInput.value = state.settings.temperature;
+    // if (ui.srsFactorInput) {
+    //     ui.srsFactorInput.value = state.settings.srsFactor;
+    //     ui.srsFactorVal.textContent = state.settings.srsFactor;
+    // }
     if (ui.speechRateInput) ui.speechRateInput.value = state.settings.speechRate;
 }
 
 function updateStateFromUI() {
-    state.settings.sessionSize = parseInt(ui.sessionSizeInput.value) || 0;
-    state.settings.srsFactor = parseFloat(ui.srsFactorInput.value);
+    state.settings.sessionSize = parseInt(ui.sessionSizeInput.value);
+    state.settings.temperature = parseFloat(ui.tempInput.value);
     state.settings.speechRate = parseFloat(ui.speechRateInput.value);
 }
 
@@ -425,4 +556,18 @@ function playAudio() {
     window.speechSynthesis.speak(utterance);
     
     console.log(`Speaking (${state.isFlipped ? 'Back' : 'Front'}): ${textToSpeak}`);
+}
+
+function adjustSpeechRate(delta) {
+    const input = document.getElementById('speechRateInput');
+    assert(!!input, "speechRateInput not found in DOM");
+
+    const currentVal = parseFloat(input.value) || 1.0;
+    const newVal = currentVal + delta;
+    
+    // We don't even need an 'if' here, just clamp it
+    input.value = Math.max(0.5, Math.min(2.0, newVal)).toFixed(1);
+    
+    // Manually trigger the change event to update the state
+    input.dispatchEvent(new Event('change'));
 }
