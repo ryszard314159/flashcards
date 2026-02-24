@@ -211,26 +211,20 @@ function setupEventListeners() {
     });
 
     document.querySelectorAll('.adj-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.dataset.target; // 'tempInput' or 'speechRateInput'
-            const dir = parseInt(btn.dataset.dir); // 1 or -1
-            if (target === 'tempInput') {
-                ui.tempInput.value = (parseFloat(ui.tempInput.value) + (dir * TEMPERATURE.delta)).toFixed(1);
-                ui.tempInput.dispatchEvent(new Event('change'));
-            } else if (target === 'speechRateInput') {
-                ui.speechRateInput.value = (parseFloat(ui.speechRateInput.value) + (dir * SPEECH_RATE.delta)).toFixed(1);
-                ui.speechRateInput.dispatchEvent(new Event('change'));
+        btn.addEventListener('click', (e) => {
+            const targetId = btn.dataset.target;
+            const direction = parseFloat(btn.dataset.dir); // -1 or 1
+
+            if (targetId === 'speechRateInput') {
+                const current = state.settings.speechRate;
+                const nextVal = current + (direction * SPEECH_RATE.delta);
+                updateSpeechRate(nextVal);
+            } else if (targetId === 'tempInput') {
+                const current = state.settings.temperature;
+                const nextVal = current + (direction * TEMPERATURE.delta);
+                updateTemperature(nextVal);
             }
         });
-    });
-
-    ui.speechRateInput?.addEventListener('change', (e) => {
-        const val = parseFloat(e.target.value) || SPEECH_RATE.default;
-        const clamped = Math.max(SPEECH_RATE.min, Math.min(SPEECH_RATE.max, val));
-        e.target.value = clamped.toFixed(1);
-        state.settings.speechRate = clamped;
-        save(KEYS.SETTINGS, state.settings);
-        console.log(`Speech rate updated to: ${clamped}`);
     });
 
     ui.tempInput?.addEventListener('change', (e) => {
@@ -243,6 +237,11 @@ function setupEventListeners() {
         save(KEYS.SETTINGS, state.settings);
         console.log(`Temperature updated to: ${clamped}`);
     });
+
+    ui.speechRateInput?.addEventListener('change', (e) => {
+        updateSpeechRate(parseFloat(e.target.value) || SPEECH_RATE.default);
+    });
+
 
     /**
      * Double-click to Select All
@@ -258,6 +257,44 @@ function setupEventListeners() {
     });
 
     setupCardListeners();
+}
+
+function updateSessionSize(newVal) {
+    assert(ui.sessionSize, "Session size input element not found in UI.", ui);
+    const clamped = Math.max(SESSION_SIZE.min, Math.min(SESSION_SIZE.max, newVal));
+    state.settings.sessionSize = clamped;
+    save(KEYS.SETTINGS, state.settings);
+    ui.sessionSize.value = clamped.toFixed(1);
+    console.log(`Session size updated to: ${clamped}`);
+}
+
+function updateSpeechRate(newVal) {
+    assert(ui.speechRateInput, "Speech rate input element not found in UI.");
+    const clamped = Math.max(SPEECH_RATE.min, Math.min(SPEECH_RATE.max, newVal));
+    state.settings.speechRate = clamped;
+    save(KEYS.SETTINGS, state.settings);
+    ui.speechRateInput.value = clamped.toFixed(1);
+    console.log(`Speech rate updated to: ${clamped}`);
+}
+
+function updateTemperature(newVal) {
+    assert(ui.tempInput, "Temperature input element not found in UI.", ui);
+    const clamped = Math.max(TEMPERATURE.min, Math.min(TEMPERATURE.max, newVal));
+    state.settings.temperature = clamped;
+    state.needsRecalc = true; // Business-logic requirement
+    save(KEYS.SETTINGS, state.settings);
+    ui.tempInput.value = clamped.toFixed(1);
+    console.log(`Temperature updated to: ${clamped}`);
+}
+
+function resetSessionSettings() {
+    console.log("Resetting session settings to defaults...");
+    updateTemperature(TEMPERATURE.default);
+    updateSpeechRate(SPEECH_RATE.default);
+    updateSessionSize(SESSION_SIZE.default);
+
+    // Optional: If you have a specific UI notification for the reset
+    // notifyUser("Session settings restored.");
 }
 
 // Example of how to handle the 4 distinct actions
