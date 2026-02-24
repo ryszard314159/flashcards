@@ -4,7 +4,7 @@
 import { deckReader, save, load, KEYS } from './io.js';
 import { SPEECH_RATE, state } from './state.js';
 import { FREQUENCY_SETTINGS } from './state.js';
-// import { DEFAULT_SESSION_SIZE } from './state.js';
+import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
 
 let ui = {};
@@ -32,10 +32,11 @@ function init() {
         menuOverlay: document.getElementById('menuOverlay'),
         nextZone: document.getElementById('nextZone'),
         prevZone: document.getElementById('prevZone'),
+        resetSessionBtn: document.getElementById('resetSessionBtn'),
         saveSettingsBtn: document.getElementById('saveSettingsBtn'),
         selectAllBtn: document.getElementById('selectAllBtn'),
         selectNoneBtn: document.getElementById('selectNoneBtn'),
-        sessionSizeInput: document.getElementById('sessionSize'),
+        sessionSize: document.getElementById('sessionSize'),
         settingsBtn: document.getElementById('settingsBtn'),
         settingsOverlay: document.getElementById('settingsOverlay'),
         speechRateInput: document.getElementById('speechRateInput'),
@@ -242,6 +243,12 @@ function setupEventListeners() {
         updateSpeechRate(parseFloat(e.target.value) || SPEECH_RATE.default);
     });
 
+    ui.resetSessionBtn.addEventListener('click', () => {
+        resetSessionSettings();
+    });
+
+    // TODO: connect Settings x button to Save & Restart
+    // TODO: call save(KEYS.SETTINGS, state.settings) only on Close, Reset, or Save & Restart
 
     /**
      * Double-click to Select All
@@ -264,7 +271,7 @@ function updateSessionSize(newVal) {
     const clamped = Math.max(SESSION_SIZE.min, Math.min(SESSION_SIZE.max, newVal));
     state.settings.sessionSize = clamped;
     save(KEYS.SETTINGS, state.settings);
-    ui.sessionSize.value = clamped.toFixed(1);
+    ui.sessionSize.value = clamped;
     console.log(`Session size updated to: ${clamped}`);
 }
 
@@ -288,13 +295,10 @@ function updateTemperature(newVal) {
 }
 
 function resetSessionSettings() {
-    console.log("Resetting session settings to defaults...");
     updateTemperature(TEMPERATURE.default);
     updateSpeechRate(SPEECH_RATE.default);
     updateSessionSize(SESSION_SIZE.default);
-
-    // Optional: If you have a specific UI notification for the reset
-    // notifyUser("Session settings restored.");
+    console.log(`resetSessionSettings: default values restored.`);
 }
 
 // Example of how to handle the 4 distinct actions
@@ -484,7 +488,6 @@ function applySessionLogic() {
 
     if (filteredCards.length === 0) filteredCards = [...state.masterDeck];
 
-    // const size = state.settings.sessionSize || DEFAULT_SESSION_SIZE;
     const size = filteredCards.length;
     const temp = state.settings.temperature;
 
@@ -520,7 +523,7 @@ function syncSettingsToUI() {
 }
 
 function updateStateFromUI() {
-    state.settings.sessionSize = parseInt(ui.sessionSizeInput.value);
+    state.settings.sessionSize = parseInt(ui.sessionSize.value);
     state.settings.temperature = parseFloat(ui.tempInput.value);
     state.settings.speechRate = parseFloat(ui.speechRateInput.value);
 }
