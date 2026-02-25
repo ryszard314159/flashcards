@@ -121,6 +121,7 @@ function setupEventListeners() {
 
     ui.closeSettings?.addEventListener('click', () => {
         ui.settingsOverlay.classList.remove('is-visible');
+        save(KEYS.SETTINGS, state.settings);
     });
 
     ui.saveSettingsBtn?.addEventListener('click', () => {
@@ -185,14 +186,11 @@ function setupEventListeners() {
         console.log("DEBUG: File selected:", e.target.files);
         const file = e.target.files[0];
         if (!file) return;
-
         try {
             // deckReader does the reading, parsing, AND sanitizing
-            const importedDeck = await deckReader(file);
-            
+            const importedDeck = await deckReader(file);  
             state.masterDeck = importedDeck;
             save(KEYS.DECK, state.masterDeck);
-
             refreshCategoryUI();
             applySessionLogic();
         } catch (error) {
@@ -202,8 +200,8 @@ function setupEventListeners() {
     });
 
     ui.selectAllBtn?.addEventListener('click', () => {
-    const checkboxes = ui.categoryList.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(cb => cb.checked = true);
+        const checkboxes = ui.categoryList.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = true);
     });
 
     ui.selectNoneBtn?.addEventListener('click', () => {
@@ -229,14 +227,7 @@ function setupEventListeners() {
     });
 
     ui.tempInput?.addEventListener('change', (e) => {
-        const val = parseFloat(e.target.value) || TEMPERATURE.default;
-        const clamped = Math.max(TEMPERATURE.min, Math.min(TEMPERATURE.max, val));
-        e.target.value = clamped.toFixed(1);
-        state.settings.temperature = clamped;
-        // This is a business-logic requirement: changing temp affects the math engine
-        state.needsRecalc = true;
-        save(KEYS.SETTINGS, state.settings);
-        console.log(`Temperature updated to: ${clamped}`);
+        updateTemperature(parseFloat(e.target.value) || TEMPERATURE.default);
     });
 
     ui.speechRateInput?.addEventListener('change', (e) => {
@@ -263,6 +254,11 @@ function setupEventListeners() {
         });
     });
 
+    window.addEventListener('beforeunload', () => {
+        // Final emergency save just in case they didn't click 'Close'
+        save(KEYS.SETTINGS, state.settings);
+    });
+
     setupCardListeners();
 }
 
@@ -270,7 +266,6 @@ function updateSessionSize(newVal) {
     assert(ui.sessionSize, "Session size input element not found in UI.", ui);
     const clamped = Math.max(SESSION_SIZE.min, Math.min(SESSION_SIZE.max, newVal));
     state.settings.sessionSize = clamped;
-    save(KEYS.SETTINGS, state.settings);
     ui.sessionSize.value = clamped;
     console.log(`Session size updated to: ${clamped}`);
 }
@@ -279,7 +274,6 @@ function updateSpeechRate(newVal) {
     assert(ui.speechRateInput, "Speech rate input element not found in UI.");
     const clamped = Math.max(SPEECH_RATE.min, Math.min(SPEECH_RATE.max, newVal));
     state.settings.speechRate = clamped;
-    save(KEYS.SETTINGS, state.settings);
     ui.speechRateInput.value = clamped.toFixed(1);
     console.log(`Speech rate updated to: ${clamped}`);
 }
@@ -289,7 +283,6 @@ function updateTemperature(newVal) {
     const clamped = Math.max(TEMPERATURE.min, Math.min(TEMPERATURE.max, newVal));
     state.settings.temperature = clamped;
     state.needsRecalc = true; // Business-logic requirement
-    save(KEYS.SETTINGS, state.settings);
     ui.tempInput.value = clamped.toFixed(1);
     console.log(`Temperature updated to: ${clamped}`);
 }
