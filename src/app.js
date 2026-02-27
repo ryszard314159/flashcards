@@ -34,6 +34,7 @@ function init() {
         prevZone: document.getElementById('prevZone'),
         resetSessionBtn: document.getElementById('resetSessionBtn'),
         saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+        searchBar: document.getElementById('searchBar'),
         selectAllBtn: document.getElementById('selectAllBtn'),
         selectNoneBtn: document.getElementById('selectNoneBtn'),
         sessionSize: document.getElementById('sessionSize'),
@@ -112,6 +113,16 @@ function setupEventListeners() {
     });
 
     window.addEventListener('click', () => ui.menuOverlay?.classList.remove('is-visible'));
+
+    ui.searchBar.addEventListener('search', (e) => {
+    // This triggers when the user clicks the native "X" or presses the keyboard Search button
+        handleSearch(e.target.value); 
+    });
+
+    // Keep your standard input listener for real-time filtering
+    ui.searchBar.addEventListener('input', (e) => {
+        handleSearch(e.target.value);
+    });
 
     // Settings Modal
     ui.settingsBtn?.addEventListener('click', () => {
@@ -346,6 +357,32 @@ function handleFrequencyChange(change) {
 
     save(KEYS.DECK, state.masterDeck);
     provideVisualFeedback(change > 0 ? 'up' : 'down');
+}
+
+function handleSearch(query) {
+    const searchTerm = query.toLowerCase().trim();
+    
+    if (searchTerm === "") {
+        // If search is empty, go back to the normal session deck
+        applySessionLogic(); 
+        return;
+    }
+
+    // Filter the master deck based on front or back text
+    const searchResults = state.masterDeck.filter(card => 
+        card.frontText.toLowerCase().includes(searchTerm) || 
+        card.backText.toLowerCase().includes(searchTerm)
+    );
+
+    if (searchResults.length > 0) {
+        state.currentSessionDeck = searchResults;
+        state.currentCardIndex = 0;
+        updateUI();
+    } else {
+        // Optional: Show a temporary "No results" toast or shake the search bar
+        console.log("Search: No matches found, retaining current deck.");
+        alert(`No matches found for: ${query}`);
+    }
 }
 
 function updateProbabilities() {
