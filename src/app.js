@@ -282,7 +282,7 @@ function updateTemperature(newVal) {
     assert(ui.tempInput, "Temperature input element not found in UI.", ui);
     const clamped = Math.max(TEMPERATURE.min, Math.min(TEMPERATURE.max, newVal));
     state.settings.temperature = clamped;
-    state.needsRecalc = true; // Business-logic requirement
+    state.calculateProbabilities = true; // Business-logic requirement
     ui.tempInput.value = clamped.toFixed(1);
     console.log(`Temperature updated to: ${clamped}`);
 }
@@ -481,15 +481,20 @@ function applySessionLogic() {
 
     if (filteredCards.length === 0) filteredCards = [...state.masterDeck];
 
-    const size = filteredCards.length;
+    // --- MINIMAL CHANGE START ---
+    // Instead of using filteredCards.length, use the setting from state
+    const requestedSize = state.settings.sessionSize || 0;
+    
+    // If requestedSize is 0, we take the whole filtered deck, 
+    // otherwise we cap it at the number of available cards.
+    const size = (requestedSize > 0) ? Math.min(requestedSize, filteredCards.length) : filteredCards.length;
+    // --- MINIMAL CHANGE END ---
+
     const temp = state.settings.temperature;
+    assert(temp >= 0.01, "Temperature must be at least 0.01", { temp });
 
-    assert(temp >= 0.01, "Temperature must be at least 0.01 to avoid extreme distributions.", { temp });
-
-    // Use our Softmax generator
     state.currentSessionDeck = generateSessionDeck(filteredCards, size, temp);
     state.currentCardIndex = 0;
-    console.log("Session generated. Size:", state.currentSessionDeck.length);
     updateUI();
 }
 
