@@ -1,6 +1,30 @@
 /* 
  * css/style.css
 */
+
+:root {
+    /* 1. The Palette (The "Art Box") */
+    --color-ocean: steelblue;       
+    --color-leaf: forestgreen;      
+    --color-blood: crimson;         
+    --color-snow: ghostwhite;       
+    --color-ink: #212529;           /* Your preferred professional dark text */
+    --color-smoke: lightgray;
+    --color-sky: #007bff;           /* A slightly more vibrant blue for primary actions */
+    --color-cloud: #f8f9fa;         /* Very light gray for backgrounds */
+
+    /* 2. The Functional Alias (The "Job Description") */
+    --bg-app: var(--color-snow);
+    --bg-item: var(--color-cloud);
+    --text-main: var(--color-ink);
+    --text-muted: gray;
+    --btn-primary: var(--color-sky);
+    --btn-primary-text: var(--color-snow);
+    --border-ui: var(--color-smoke);
+    --border-subtle: #e9ecef;
+    --bg-active: #e2e6ea;           /* For the :active state */
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -26,6 +50,12 @@ html, body {
     overflow: hidden;
     background-color: whitesmoke;
 } */
+
+hr {
+    margin: 1.5625rem 0;           /* 25px */
+    border: 0;
+    border-top: 0.0625rem solid var(--border-subtle);
+}
 
 header {
     flex-shrink: 0; /* Header stays its natural size */
@@ -302,6 +332,59 @@ footer {
     display: block;
 }
 
+/* Base Styles */
+.menu-container {
+    padding: 1.25rem;              /* 20px */
+    max-width: 31.25rem;           /* 500px */
+    width: 95%;                    /* Scales down on narrow screens */
+    margin: 0 auto;
+    color: var(--text-main);
+}
+
+/* Primary Action Buttons (Choose File, etc.) */
+.menu-btn {
+    display: block;
+    width: 100%;
+    padding: 0.9375rem;            /* 15px */
+    margin: 0.625rem 0;            /* 10px */
+    border-radius: 0.5rem;         /* 8px */
+    border: 0.0625rem solid var(--border-ui);
+    background: var(--color-snow);
+    color: var(--text-main);
+    font-size: 1.1rem;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.menu-btn.primary {
+    background: var(--btn-primary);
+    color: var(--btn-primary-text);
+    border: none;
+}
+
+/* Secondary List Items (GitHub Example Decks) */
+.menu-btn-choice {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;              /* 12px */
+    margin: 0.3125rem 0;           /* 5px */
+    background: var(--bg-item);
+    border: 0.0625rem solid var(--border-subtle);
+    border-radius: 0.375rem;       /* 6px */
+    text-align: left;
+    font-size: 1rem;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+/* Visual feedback for mobile touch (Pixel/iPhone) */
+.menu-btn:active, 
+.menu-btn-choice:active {
+    background-color: var(--bg-active);
+    transform: scale(0.98);        /* "Squish" effect on tap */
+}
+
 .menu-modal {
     position: absolute;
     top: 1rem;
@@ -337,6 +420,13 @@ footer {
 
 .menu-icon { justify-content: center; }
 .menu-label { font-weight: 500; color: black; }
+
+.hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: -0.3125rem;        /* -5px */
+}
 
 /* Utility class to show modal */
 .is-visible { display: block !important; }

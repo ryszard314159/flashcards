@@ -1,7 +1,9 @@
 /**
  * src/app.js
  */
+import { CONFIG } from './config.js';
 import { deckReader, save, load, KEYS } from './io.js';
+import { fetchRemoteDeckList, fetchTextFromUrl, processDeckText } from './io.js';
 import { SPEECH_RATE, state } from './state.js';
 import { FREQUENCY_SETTINGS } from './state.js';
 import { SESSION_SIZE } from './state.js';
@@ -20,6 +22,7 @@ function init() {
         cardInner: document.getElementById('cardInner'),
         categoryList: document.getElementById('categoryList'),
         closeDeck: document.getElementById('closeDeck'),
+        closeImport: document.getElementById('closeImport'),
         closeSettings: document.getElementById('closeSettings'),
         counter: document.getElementById('card-counter'),
         deckBtn: document.getElementById('deckBtn'),
@@ -28,6 +31,7 @@ function init() {
         frontDisplay: document.getElementById('frontDisplay'),
         frontLabel: document.getElementById('frontLabel'),
         importBtn: document.getElementById('importBtn'),
+        importOverlay: document.getElementById('importOverlay'),
         menuBtn: document.getElementById('menuBtn'),
         menuOverlay: document.getElementById('menuOverlay'),
         nextZone: document.getElementById('nextZone'),
@@ -41,6 +45,7 @@ function init() {
         settingsBtn: document.getElementById('settingsBtn'),
         settingsOverlay: document.getElementById('settingsOverlay'),
         speechRateInput: document.getElementById('speechRateInput'),
+        remoteExamplesList: document.getElementById('remoteExamplesList'),
         // srsFactorInput: document.getElementById('srsFactor'),
         // srsFactorVal: document.getElementById('srsFactorVal'),
         tempInput: document.getElementById('tempInput'),
@@ -62,16 +67,14 @@ function init() {
 
     // 2. ALWAYS setup listeners so buttons work!
     setupEventListeners();
-    // setupCardListeners();
     syncSettingsToUI();
+    initRemoteMenu();
 
     if (state.masterDeck.length > 0) {
         refreshCategoryUI();
         applySessionLogic();
     } else {
-        if (ui.frontDisplay) {
-            ui.frontDisplay.textContent = "Please import a .deck file";
-        }
+        ui.frontDisplay.textContent = "Please import a .deck file";
     }
     
     console.log("init: UI Initialized. FilePicker is:", ui.filePicker);
@@ -188,10 +191,18 @@ function setupEventListeners() {
     });
 
     // File Import
+    // ui.importBtn?.addEventListener('click', () => {
+    //     ui.menuOverlay.classList.remove('is-visible');
+    //     ui.filePicker.click();
+    // });
+
     ui.importBtn?.addEventListener('click', () => {
-        ui.menuOverlay.classList.remove('is-visible');
-        ui.filePicker.click();
-    });
+        // 1. Hide the main menu overlay
+        ui.menuOverlay.classList.remove('is-visible'); 
+        
+        // 2. Show the new import options overlay
+        ui.importOverlay.classList.add('is-visible');  
+    });    
 
     ui.filePicker?.addEventListener('change', async (e) => {
         console.log("DEBUG: File selected:", e.target.files);
@@ -199,15 +210,32 @@ function setupEventListeners() {
         if (!file) return;
         try {
             // deckReader does the reading, parsing, AND sanitizing
-            const importedDeck = await deckReader(file);  
-            state.masterDeck = importedDeck;
-            save(KEYS.DECK, state.masterDeck);
-            refreshCategoryUI();
-            applySessionLogic();
+            const importedDeck = await deckReader(file);
+            await handleImportData(importedDeck);
+            // state.masterDeck = importedDeck;
+            // save(KEYS.DECK, state.masterDeck);
+            // refreshCategoryUI();
+            // applySessionLogic();
         } catch (error) {
             // alert(error);
             console.log("ERROR: filePicker: error= ", error);
         }
+    });
+
+    ui.importUrlBtn?.addEventListener('click', async () => {
+        const url = prompt("Enter raw .deck URL:");
+        if (!url) return;
+        try {
+            const text = await fetchTextFromUrl(url);
+            const cards = processDeckText(text);
+            await handleImportData(cards);
+        } catch (err) {
+            alert("Error loading from URL.");
+        }
+    });
+
+    ui.closeImport?.addEventListener('click', () => {
+        ui.importOverlay.classList.remove('is-visible');
     });
 
     ui.selectAllBtn?.addEventListener('click', () => {
@@ -271,6 +299,53 @@ function setupEventListeners() {
     });
 
     setupCardListeners();
+}
+
+/**
+ * NEW: Unified handler for all import sources
+ */
+async function handleImportData(cards) {
+    assert(Array.isArray(cards),
+           `Imported data must be an array of cards.`);
+    // if (!cards || cards.length === 0) return;
+    state.masterDeck = cards;
+    save(KEYS.DECK, state.masterDeck);
+    refreshCategoryUI();
+    applySessionLogic();
+    ui.menuOverlay?.classList.remove('is-visible');
+    console.log("Import successful, deck size:", cards.length);
+}
+
+/**
+ * NEW: Logic to populate the GitHub Example Menu
+ */
+async function initRemoteMenu() {
+    if (!ui.remoteExamplesList) return;
+    
+    try {
+        const files = await fetchRemoteDeckList();
+        ui.remoteExamplesList.innerHTML = ''; // Clear loading indicator
+
+        files.forEach(file => {
+            const btn = document.createElement('button');
+            btn.className = 'menu-btn-choice';
+            btn.textContent = `📚 ${file.name.replace('.deck', '')}`;
+            
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                try {
+                    const text = await fetchTextFromUrl(file.download_url);
+                    const cards = processDeckText(text);
+                    await handleImportData(cards);
+                } catch (err) {
+                    alert("Failed to load example deck.");
+                }
+            };
+            ui.remoteExamplesList.appendChild(btn);
+        });
+    } catch (err) {
+        ui.remoteExamplesList.innerHTML = '<p class="hint">Examples unavailable offline</p>';
+    }
 }
 
 function updateSessionSize(newVal) {

@@ -101,6 +101,43 @@
         </nav>
     </div>
 
+<div id="importOverlay" class="modal-overlay">
+    
+    <div id="importMenu" class="settings-modal menu-container">
+        
+        <header class="settings-header">
+            <h3>Import Deck</h3>
+            <button id="closeImport">✕</button>
+        </header>
+
+        <div class="settings-content">
+            <div class="import-option">
+                <label for="filePicker" class="menu-btn primary">
+                    <span>📁</span> Select File
+                </label>
+                <input type="file" id="filePicker" accept=".deck,.txt" style="display:none">
+                <p class="hint">Works with Phone Storage, Google Drive, and iCloud</p>
+            </div>
+
+            <hr>
+
+            <div class="import-option">
+                <h4>📚 Example Decks</h4>
+                <div id="remoteExamplesList">
+                    <p class="hint">Scanning GitHub for decks...</p>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="import-option">
+                <h4>🌐 Public Repositories</h4>
+                <button class="menu-btn" id="importUrlBtn">🔗 Custom URL</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     <div id="deckOverlay" class="modal-overlay">
         <div class="settings-modal">
             <h2>Select Categories</h2>
