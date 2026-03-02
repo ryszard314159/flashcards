@@ -1,689 +1,286 @@
-/* 
- * css/style.css
-*/
+/* * style.css - Fully Variable-Driven & Named Color Build
+ * Layout: [Header] -> [Row: Prev | Card | Next] -> [Footer]
+ */
 
 :root {
-    /* 1. The Palette (The "Art Box") */
-    --color-ocean: steelblue;       
-    --color-leaf: forestgreen;      
-    --color-blood: crimson;         
-    --color-snow: ghostwhite;       
-    --color-ink: #212529;           /* Your preferred professional dark text */
-    --color-smoke: lightgray;
-    --color-sky: #007bff;           /* A slightly more vibrant blue for primary actions */
-    --color-cloud: #f8f9fa;         /* Very light gray for backgrounds */
-
-    /* 2. The Functional Alias (The "Job Description") */
-    --bg-app: var(--color-snow);
-    --bg-item: var(--color-cloud);
-    --text-main: var(--color-ink);
-    --text-muted: gray;
-    --btn-primary: var(--color-sky);
-    --btn-primary-text: var(--color-snow);
-    --border-ui: var(--color-smoke);
-    --border-subtle: #e9ecef;
-    --bg-active: #e2e6ea;           /* For the :active state */
+    --color-ocean: steelblue;       /* #4682b4 */
+    --color-snow: ghostwhite;       /* #f8f8ff */
+    --color-ink: #212529;           /* Professional Dark */
+    --color-smoke: lightgray;       /* #d3d3d3 */
+    --border-subtle: #e9ecef;       
+    
+    /* Debug Palette (Named Colors) */
+    --debug-header: lightyellow;
+    --debug-footer: plum;
+    --debug-prev: lightcoral;
+    --debug-next: lightskyblue;
+    --debug-card-bg: honeydew;
 }
 
+/* --- 1. CORE RESET --- */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
-    height: 100dvh; /* Dynamic viewport height handles the Android URL bar */
+    height: 100dvh;
     display: flex;
     flex-direction: column;
-    /* margin: 0; */
-    /* padding: 0; */
     overflow: hidden;
+    background-color: var(--color-ink); /* Background behind everything */
+    font-family: -apple-system, system-ui, sans-serif;
+    color: var(--color-ink);
 }
 
-/* body {
-    font-family: sans-serif;
-    display: grid;
-    grid-template-rows: 5vh 90vh 5vh;
-    min-height: 100vh;
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-    background-color: whitesmoke;
-} */
-
-hr {
-    margin: 1.5625rem 0;           /* 25px */
-    border: 0;
-    border-top: 0.0625rem solid var(--border-subtle);
-}
-
-header {
-    flex-shrink: 0; /* Header stays its natural size */
-}
-
-/* 2. Header and Footer stay their natural size */
-.app-header, .app-footer {
-    flex-shrink: 0;
-}
-
-.app-container {
-    flex-grow: 1;   /* This takes up all the available middle space */
-    overflow-y: auto; /* If a card is huge, it scrolls inside here, not the whole page */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Centers your card vertically */
-}
-
-footer {
-    flex-shrink: 0; /* Footer stays at the bottom and won't be squashed */
-}
-
-/* --- Header Area (3x1 Grid) --- */
-/* style.css */
-
-
-
+/* --- 2. APP HEADER --- */
 .app-header {
-    display: grid;
-    /* 15% Counter | 70% Search | 15% Menu Zone */
-    grid-template-columns: 15% 70% 15%;
-    align-items: stretch; /* Stretch children vertically to fill 10vh */
-    padding: 0; /* Remove padding so button can touch the edges */
-    background-color: white;
-    border-bottom: 0.1rem solid lightgray;
-}
-
-#card-counter {
+    height: 4.5rem;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
+    background-color: var(--debug-header);
+    border-bottom: 2px solid gold;
+    padding: 0 1rem;
+    z-index: 1000;
+}
+
+#card-counter { 
+    width: 15%; 
+    font-size: 0.85rem; 
+    font-weight: bold; 
     color: slategray;
 }
 
-.search-container {
-    display: flex;
-    align-items: center;
-    padding: 0 0.5rem;
-}
-
+.search-container { flex-grow: 1; padding: 0 0.5rem; }
 .search-container input {
     width: 100%;
     padding: 0.6rem 1rem;
     border-radius: 2rem;
-    border: 0.1rem solid lightgray;
-    background-color: whitesmoke;
+    border: 1px solid var(--color-smoke);
     outline: none;
+    background-color: white;
 }
 
-/* The "Big Target" Menu Button */
-#menuBtn {
-    background: none;
-    border: none;
-    font-size: 1.8rem; /* Slightly larger icon */
-    cursor: pointer;
+#menuBtn { 
+    width: 15%; 
+    text-align: right; 
+    background: none; 
+    border: none; 
+    font-size: 2rem; 
+    cursor: pointer; 
+    color: var(--color-ink);
+}
+
+/* --- 3. MIDDLE NAVIGATION ROW --- */
+.card-view {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row; 
+    align-items: stretch; /* Fills vertical space between Header/Footer */
+    background-color: var(--color-ink); /* Gap color */
+    perspective: 1200px;
+}
+
+/* Navigation Zones */
+.nav-zone {
+    width: 15%;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%; /* Fills the 10vh header height */
-    transition: background-color 0.2s;
-}
-
-#menuBtn:active {
-    background-color: whitesmoke; /* Visual feedback for the tap */
-}
-
-/* --- Main View (3-Column Grid) --- */
-/* Main View (The 80vh Row) */
-.card-view {
-    display: grid;
-    grid-template-columns: 15% 70% 15%;
-    flex-grow: 1;
-    align-items: stretch; 
-    
-    /* Use 100% of the 80vh allocated by the body grid */
-    /* height: 100%;  */
-    /* width: 100%;  */
-    
-    /* Restoring the 3D Depth */
-    perspective: 100rem; 
-    
-    box-sizing: border-box;
-    overflow: hidden;
-}
-
-
-/* Force elements into their specific columns */
-#prevZone {
-    grid-column: 1; /* First 15% */
-    height: 100%;
-    z-index: 10;
-    /* background: rgba(255, 0, 0, 0.1); /* Temporary: Red tint to see the zone */
-}
-
-.card-container {
-    grid-column: 2; /* Middle 70% */
-    place-self: center; /* Center horizontally AND vertically */
-    width: 100%;
-    height: 100%;
-    z-index: 5; /* Higher than zones */
-    position: relative;
-    transform-style: preserve-3d;
-    perspective: 1000px;
-}
-
-#nextZone {
-    grid-column: 3; /* Last 15% */
-    height: 100%;
-    z-index: 10;
-    /* background: rgba(0, 0, 255, 0.1); /* Temporary: Blue tint to see the zone */
-}
-
-/* Navigation Overlay Zones */
-.nav-zone {
-    height: 100%;
-    z-index: 10;
+    font-size: 2.5rem;
+    color: white;
     cursor: pointer;
-    transition: background-color 0.2s;
-    /* Optional: helps visualize during debugging */
-    background-color: rgba(255, 0, 0, 0.1);
+    z-index: 100;
+    user-select: none;
 }
 
-.nav-zone:active {
-    background-color: rgba(0, 0, 0, 0.05);
+#prevZone { background-color: var(--debug-prev); } 
+#nextZone { background-color: var(--debug-next); } 
+
+/* --- 4. THE CARD CONTAINER (Edge-to-Edge) --- */
+.card-container {
+    flex-grow: 1;
+    display: flex;
+    align-items: stretch; 
+    justify-content: stretch;
+    background-color: var(--debug-card-bg);
 }
 
 .card-inner {
-    position: relative;
     width: 100%;
     height: 100%;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
     transform-style: preserve-3d;
-    z-index: 6; /* Topmost */
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card-inner.is-flipped {
-    transform: rotateY(180deg);
-}
+.card-inner.is-flipped { transform: rotateY(180deg); }
 
 .card-face {
     position: absolute;
-    width: 100%;
-    height: 100%;
+    inset: 0; 
     backface-visibility: hidden;
-    -webkit-backface-visibility: hidden; /* For iPhone/Safari */
-    transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0;
-    border-radius: 1.5rem;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    pointer-events: auto;
-}
-
-.card-face-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 0.5rem;
-    box-sizing: border-box;
-}
-
-.card-front {
-    position: absolute;
-    background-color: ivory;
-    z-index: 2;
-    transform: rotateY(0deg);
-}
-
-.card-back {
-    position: absolute;
-    background-color: aliceblue;
-    transform: rotateY(180deg);
-}
-
-.label {
-    font-size: 0.8rem;
-    color: darkgray;
-    letter-spacing: 0.1rem;
-}
-
-.label {
-    flex-grow: 1;
-    text-align: center;
-    font-size: 0.8rem;
-    letter-spacing: 0.1rem;
-    color: darkgray; /* Or your preferred muted color */
-}
-
-.freq-btn {
-    background: none;
-    border: 1px solid steelblue;
-    color: steelblue;
-    border-radius: 4px;
-    width: 2rem;
-    height: 2rem;
-    cursor: pointer;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.freq-btn:active {
-    background-color: steelblue;
-    color: white;
-}
-
-.phrase {
-    font-size: 2rem;
-    text-align: center;
-    color: black;
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-}
-
-.audio-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    /* Expand to fill the parent footer */
-    width: 100%;
-    height: 100%; /* Ensures it fills the footer's height too */
-    padding: 15px 0; /* Adds vertical thickness for easier tapping */
-    
-    /* Ensure the icon stays centered */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    /* Visual feedback (optional) */
-    transition: background 0.2s;
-}
-
-/* --- Footer Area --- */
-.app-footer {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
     background-color: white;
-    border-top: 0.1rem solid lightgray;
-    color: slategray;
-    font-size: 0.8rem;
+    border-radius: 0; /* Pure edge-to-edge square */
 }
 
-#update-badge {
-    color: red;
-    font-weight: bold;
-    margin-left: 0.5rem;
+.card-front { transform: rotateY(0deg) translateZ(1px); }
+.card-back { 
+    transform: rotateY(180deg) translateZ(1px); 
+    background-color: aliceblue; 
 }
 
-/* --- Menu Modal --- */
-.modal-overlay {
-    position: fixed;
-    inset: 0; /* Shorthand for top/bottom/left/right: 0 */
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999; /* Ensure this is the highest number in your CSS */
-    display: none; 
-}
-
-.modal-overlay.is-visible {
-    display: block;
-}
-
-/* Base Styles */
-.menu-container {
-    padding: 1.25rem;              /* 20px */
-    max-width: 31.25rem;           /* 500px */
-    width: 95%;                    /* Scales down on narrow screens */
-    margin: 0 auto;
-    color: var(--text-main);
-}
-
-/* Primary Action Buttons (Choose File, etc.) */
-.menu-btn {
-    display: block;
-    width: 100%;
-    padding: 0.9375rem;            /* 15px */
-    margin: 0.625rem 0;            /* 10px */
-    border-radius: 0.5rem;         /* 8px */
-    border: 0.0625rem solid var(--border-ui);
-    background: var(--color-snow);
-    color: var(--text-main);
-    font-size: 1.1rem;
-    cursor: pointer;
-    text-align: center;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.menu-btn.primary {
-    background: var(--btn-primary);
-    color: var(--btn-primary-text);
-    border: none;
-}
-
-/* Secondary List Items (GitHub Example Decks) */
-.menu-btn-choice {
-    display: block;
-    width: 100%;
-    padding: 0.75rem;              /* 12px */
-    margin: 0.3125rem 0;           /* 5px */
-    background: var(--bg-item);
-    border: 0.0625rem solid var(--border-subtle);
-    border-radius: 0.375rem;       /* 6px */
-    text-align: left;
-    font-size: 1rem;
-    color: var(--text-main);
-    cursor: pointer;
-}
-
-/* Visual feedback for mobile touch (Pixel/iPhone) */
-.menu-btn:active, 
-.menu-btn-choice:active {
-    background-color: var(--bg-active);
-    transform: scale(0.98);        /* "Squish" effect on tap */
-}
-
-.menu-modal {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background-color: white;
-    width: 16rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 0.5rem 2rem rgba(0,0,0,0.3);
-}
-
-.menu-grid {
-    display: grid;
-    grid-template-columns: 40px 1fr; /* Icon column and Label column */
-    gap: 0;
-}
-
-.menu-item {
-    display: contents; /* Allows children to participate in the grid */
-    cursor: pointer;
-}
-
-.menu-item div, .menu-item button {
-    padding: 1rem;
-    border-bottom: 0.1rem solid whitesmoke;
-    background: white;
-    display: flex;
-    align-items: center;
-}
-
-.menu-item:active div {
-    background: whitesmoke;
-}
-
-.menu-icon { justify-content: center; }
-.menu-label { font-weight: 500; color: black; }
-
-.hint {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    text-align: center;
-    margin-top: -0.3125rem;        /* -5px */
-}
-
-/* Utility class to show modal */
-.is-visible { display: block !important; }
-
-.settings-modal {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    width: 90%;
-    max-width: 25rem;
-    max-height: 80vh;
-    border-radius: 1rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    /* The new "breathing room" additions */
-    padding: 2rem; 
-    box-sizing: border-box; /* Crucial: ensures padding doesn't push the width over 90% */
-}
-
-/* Ensure the title is centered and spaced */
-.settings-modal h2 {
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    color: darkslategray;
-}
-.settings-header {
-    display: flex;
-    justify-content: space-between;
-    padding: 1.5rem;
-    background: whitesmoke;
-    border-bottom: 0.1rem solid lightgray;
-}
-
-.settings-content { padding: 1.5rem; }
-
-.settings-section { margin-bottom: 2rem; }
-
-.settings-section h4 {
-    color: slategray;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-    border-bottom: 0.1rem solid whitesmoke;
-}
-
-.setting-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.setting-item label { font-size: 0.9rem; color: black; }
-
-.setting-item input[type="number"] {
-    padding: 0.5rem;
-    border: 0.1rem solid lightgray;
-    border-radius: 0.4rem;
-}
-
-.settings-actions {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: center;
-}
-
-.primary-btn {
-    background-color: steelblue;
-    color: white;
-    padding: 0.8rem 1.5rem;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: bold;
-    cursor: pointer;
-    width: 100%;
-}
-
-.primary-btn:active {
-    background-color: midnightblue;
-}
-
-#closeSettings {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-}
-
-/* style.css */
-
-/* Category Grid */
-.category-grid {
-    border-top: 0.06rem solid gainsboro;
-    border-bottom: 0.06rem solid gainsboro;
-    max-height: 40vh;
-    overflow-y: auto;
-    margin: 1rem 0;
-}
-
-.category-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 0.6rem;
-    border-bottom: 0.06rem solid snow;
-}
-
-.category-item:last-child {
-    border-bottom: none;
-}
-
-.category-item label {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    cursor: pointer;
-    font-weight: 500;
-    color: darkslategray;
-}
-
-.category-item input[type="checkbox"] {
-    width: 1.2rem;
-    height: 1.2rem;
-    margin-right: 1rem;
-    accent-color: steelblue; 
-}
-
-/* Bulk Action Buttons Container */
-.bulk-actions {
-    display: flex;
-    gap: 0.6rem;
-    margin-bottom: 1rem;
-    justify-content: center;
-}
-
-/* Secondary Buttons (All/None) */
-.secondary-btn {
-    background: whitesmoke;
-    border: 0.06rem solid silver;
-    padding: 0.3rem 1rem;
-    border-radius: 0.3rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: dimgray;
-    transition: background 0.2s;
-}
-
-.secondary-btn:hover {
-    background: lightgray;
-}
-
-.save-btn {
-    background: steelblue;
-    color: white;
-    padding: 0.8rem 2rem;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 1.1rem;
-    cursor: pointer;
-    width: 100%;
-}
-
-/* Center the Title */
-#deckOverlay h2 {
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    color: darkslategray;
-}
-
-/* Ensure the face itself is a container for the grid */
-
-
-/* The Layout Engine */
+/* --- 5. CARD INTERNAL CONTENT --- */
 .card-grid {
-    display: grid;
-    grid-template-rows: auto 1fr auto; 
-    width: 100%;
-    height: 100%; /* Spans the full height of the card face */
-}
-
-/* Header & Footer Styling */
-.card-header, .card-footer {
-    position: relative;
-    z-index: 20;
     display: flex;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    background-color: rgba(70, 130, 180, 0.05); /* Very light steelblue tint */
+    flex-direction: column;
+    height: 100%;
 }
 
 .card-header {
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(70, 130, 180, 0.1);
-}
-
-.card-footer {
-    justify-content: center;
-    border-top: 1px solid rgba(70, 130, 180, 0.1);
-}
-
-/* The Clickable Body */
-.card-body {
+    height: 4rem;
     display: flex;
-    position: relative;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 1rem;
+    background-color: whitesmoke;
+    border-bottom: 1px solid var(--color-smoke);
+}
+
+.label { 
+    flex-grow: 1; 
+    text-align: center; 
+    font-size: 0.9rem; 
+    color: dimgray; 
+    font-weight: bold; 
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+}
+
+.freq-btn {
+    width: 3rem;
+    height: 2.5rem;
+    border: 2px solid var(--color-ocean);
+    border-radius: 0.4rem;
+    background-color: white;
+    color: var(--color-ocean);
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.card-body {
     flex-grow: 1;
+    display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
     text-align: center;
     cursor: pointer;
-    background: transparent;
-    z-index: 5;
 }
 
-/* Frequency Buttons Styling */
-.freq-btn {
-    background: white;
-    border: 2px solid steelblue;
-    color: steelblue;
+.phrase {
+    font-size: clamp(1.5rem, 6vh, 4rem);
+    font-weight: 500;
+    color: var(--color-ink);
+}
+
+.card-footer {
+    height: 5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: whitesmoke;
+    border-top: 1px solid var(--color-smoke);
+}
+
+.audio-btn { 
+    font-size: 3rem; 
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    color: var(--color-ocean);
+}
+
+/* --- 6. APP FOOTER --- */
+.app-footer {
+    height: 3.5rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--debug-footer);
+    border-top: 2px solid darkorchid;
+    font-weight: bold;
+    color: var(--color-ink);
+}
+
+/* --- 7. MODALS --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 5000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.is-visible { display: flex; }
+
+.settings-modal {
+    background-color: var(--color-snow);
+    width: 95%;
+    max-width: 30rem;
+    padding: 2rem;
+    border-radius: 1rem;
+    color: var(--color-ink);
+    box-shadow: 0 1rem 3rem black;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--color-ocean);
+    color: white;
+    border: none;
     border-radius: 0.5rem;
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 1.2rem;
     font-weight: bold;
     cursor: pointer;
-    transition: transform 0.1s, background 0.2s;
+    margin-top: 1rem;
 }
 
-.freq-btn:active {
-    transform: scale(0.9);
-    background: steelblue;
+/* --- Navigation Hints (The Arrows) --- */
+#prevZone::after {
+    content: '<';
+    font-size: 3rem;
     color: white;
+    font-weight: bold;
+    /* This ensures it stays centered even if the zone is very tall */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Visual Feedback Glows */
-.feedback-up {
-    box-shadow: 0 0 20px 5px rgba(46, 204, 113, 0.6) !important;
-    transition: box-shadow 0.2s ease;
+#nextZone::after {
+    content: '>';
+    font-size: 3rem;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.feedback-down {
-    box-shadow: 0 0 20px 5px rgba(231, 76, 60, 0.6) !important;
-    transition: box-shadow 0.2s ease;
+/* Optional: Add a hover/active effect to the hint itself */
+.nav-zone:active::after {
+    transform: scale(1.2);
+    color: var(--color-snow);
 }
-
-/* DEBUGGING COLORS */
-#prevZone { background: lightblue; }
-#nextZone { background: lightpink; }
