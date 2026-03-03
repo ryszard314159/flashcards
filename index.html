@@ -138,19 +138,18 @@
     </div>
 
     <div id="deckOverlay" class="modal-overlay">
-        <div class="settings-modal">
-
+        <div id="deckMenu" class="settings-modal menu-container">
             <header class="settings-header">
                 <h3>Select Categories</h3>
                 <button id="closeSelect">✕</button>
             </header>
             
-            <div class="bulk-actions">
-                <button id="selectAllBtn" class="secondary-btn">All</button>
-                <button id="selectNoneBtn" class="secondary-btn">None</button>
-            </div>
-
-            <div id="categoryList" class="category-grid">
+            <div class="settings-content">
+                <div class="bulk-actions">
+                    <button id="selectAllBtn" class="secondary-btn">All</button>
+                    <button id="selectNoneBtn" class="secondary-btn">None</button>
+                </div>
+                <div id="categoryList" class="category-grid"></div>
             </div>
 
             <div class="modal-actions">
@@ -160,7 +159,8 @@
     </div>
 
     <div id="settingsOverlay" class="modal-overlay">
-        <div class="settings-modal">
+        <div id="settingsMenu" class="settings-modal menu-container">
+            
             <header class="settings-header">
                 <h3>Settings</h3>
                 <button id="closeSettings">✕</button>
@@ -192,15 +192,15 @@
                         <button type="button" class="adj-btn" data-target="speechRateInput" data-dir="+1">&gt;</button>
                     </div>
                 </div>
-
-                <div class="settings-actions">
-                    <button id="saveSettingsBtn" class="primary-btn">Save & Restart Session</button>
-                    <button id="resetSessionBtn" class="secondary-btn">Reset Session Defaults</button>
-                </div>
             </div>
 
+            <div class="settings-actions">
+                <button id="saveSettingsBtn" class="primary-btn">Save & Restart</button>
+                <button id="resetSessionBtn" class="secondary-btn">Reset Defaults</button>
+            </div>
         </div>
     </div>
+
    <input type="file" id="filePicker" accept=".deck,.txt" style="display: none;">
 </body>
 </html>
