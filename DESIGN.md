@@ -16,29 +16,39 @@ A minimalist, content-centric flashcard application designed for **Spaced Repeti
 
 Overall layout of the main panel should be like this:
 
-|       HEADER       |
-| PREV | CARD | NEXT |
-|      FOOTER        |
+MAIN:
 
-but is is like this
+|  APP HEADER  |
+----------------
+| < | CARD | > |
+----------------
+| APP FOOTER   |
 
-|       HEADER       |
-______________________
-| PREV | NEXT
-| PREV | CARD |
-|      FOOTER        |
+APP HEADER:
 
-Now card-view looks like this
+-------------------------------
+| COUNTER | SEARCH BOX | MENU |
+-------------------------------
 
---------------------------
-|      |          |      |
-| PREV |    ?     | NEXT |
-|      |          |      |
---------------------------
-|      |          |      |
-|   ?  |  CARD    |  ?   |
-|      |          |      |
---------------------------
+CARD:
+
+---------------------
+| DOWN | LABEL | UP |
+|-------------------|
+|                   |
+|      CARD         |
+|                   |
+|      TEXT         |
+|                   |
+--------------------
+|    CARD /AUDIO    |
+--------------------
+
+APP FOOTER:
+
+-------------
+|   Version |
+-------------
 
 
 

@@ -31,8 +31,7 @@ Lungs | Pulmones
 ## Debugging tips:
 
 ### Useful ADB commands
-adb start-server
- 1483  adb kill-server; adb start-server; adb devices
- 1491  adb reverse --remove-all
- 1492  adb reverse tcp:8080 tcp:8080
- 1493  adb reverse --list
+
+adb kill-server; adb start-server; adb devices
+adb reverse --remove-all; adb reverse tcp:8080 tcp:8080
+adb reverse --list

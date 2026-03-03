@@ -23,6 +23,7 @@ function init() {
         categoryList: document.getElementById('categoryList'),
         closeDeck: document.getElementById('closeDeck'),
         closeImport: document.getElementById('closeImport'),
+        closeSelect: document.getElementById('closeSelect'),
         closeSettings: document.getElementById('closeSettings'),
         counter: document.getElementById('card-counter'),
         deckBtn: document.getElementById('deckBtn'),
@@ -236,6 +237,10 @@ function setupEventListeners() {
 
     ui.closeImport?.addEventListener('click', () => {
         ui.importOverlay.classList.remove('is-visible');
+    });
+
+    ui.closeSelect?.addEventListener('click', () => {
+        ui.deckOverlay.classList.remove('is-visible');
     });
 
     ui.selectAllBtn?.addEventListener('click', () => {
