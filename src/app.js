@@ -551,33 +551,103 @@ function resetSessionSettings() {
 
 // Example of how to handle the 4 distinct actions
 function setupCardListeners() {
-    // 1. Check if we already attached this to prevent "Double Flipping"
-    console.log("DEBUG: in setupCardListeners. cardInner is:", ui.cardInner);
     if (ui.cardInner.dataset.initialized === 'true') return;
 
-    ui.cardInner.addEventListener('click', (e) => {
-        // Find if a button was clicked
-        const btn = e.target.closest('button');
+    // --- CONFIGURATION CONSTANTS ---
+    const TOUCH_MOVE_THRESHOLD_PX = 10;
+    const MOUSE_MOVE_THRESHOLD_PX = 8;
+    const TOUCH_LONG_PRESS_DURATION_MS = 250;
+
+    // Determine environment to set the correct movement tolerance
+    const isTouchEnv = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const currentMoveThreshold = isTouchEnv ? TOUCH_MOVE_THRESHOLD_PX : MOUSE_MOVE_THRESHOLD_PX;
+
+    let startX, startY;
+    let touchTimer = null;
+    let isLongPress = false;
+
+    // We pass an explicit 'isMouse' flag to separate the logic
+    const handleStart = (x, y, isMouse) => {
+        startX = x;
+        startY = y;
+        isLongPress = false;
         
-        if (btn) {
-            // If it's a button, handle logic and STOP the event from reaching cardInner toggle
-            e.stopPropagation();
-            e.preventDefault();
-            if (btn.classList.contains('freq-up')) handleFrequencyChange(1);
-            if (btn.classList.contains('freq-down')) handleFrequencyChange(-1);
-            if (btn.classList.contains('audio-btn')) playAudio();
+        if (touchTimer) clearTimeout(touchTimer);
+        
+        // Desktop users natively click-and-drag to select text, 
+        // so we ONLY need the long-press timer for touch devices.
+        if (!isMouse) {
+            touchTimer = setTimeout(() => { 
+                isLongPress = true; 
+            }, TOUCH_LONG_PRESS_DURATION_MS);
+        }
+    };
+
+    const handleEnd = (x, y, target, isMouse) => {
+        if (touchTimer) clearTimeout(touchTimer);
+        
+        const diffX = Math.abs(x - startX);
+        const diffY = Math.abs(y - startY);
+
+        console.log(`[DEBUG] handleEnd | isMouse: ${isMouse}, diffX: ${diffX}, diffY: ${diffY}, isLongPress: ${isLongPress}`);
+
+        // 1. Cancel if movement exceeds the defined pixel threshold (Drag/Highlight)
+        if (diffX > currentMoveThreshold || diffY > currentMoveThreshold) {
+            console.log("[DEBUG] Cancelled: Exceeded move threshold");
             return;
         }
 
-        // 2. Only flip if we clicked the card body or header (NOT a button)
-        // We use toggle() directly on the class for reliability
+        // 2. Cancel if touch timer completed (Copy intent on Pixel)
+        if (!isMouse && isLongPress) {
+            console.log("[DEBUG] Cancelled: Touch long press detected");
+            return;
+        }
+
+        // 3. Cancel if a button was the target
+        if (target.closest('button')) {
+            console.log("[DEBUG] Cancelled: Clicked a button");
+            return;
+        }
+
+        // 4. Clean Click/Tap: Execute Flip
+        console.log("[DEBUG] Executing Flip!");
         state.isFlipped = !ui.cardInner.classList.contains('is-flipped');
         ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
+    };
 
-        console.log("setupCardListeners: state.isFlipped:", state.isFlipped);
+    // --- Mouse Listeners (Desktop) ---
+    ui.cardInner.addEventListener('mousedown', e => {
+        if (e.button !== 0) return; // Only accept left-clicks
+        handleStart(e.clientX, e.clientY, true);
     });
 
-    // Mark as initialized
+    ui.cardInner.addEventListener('mouseup', e => {
+        if (e.button !== 0) return;
+        handleEnd(e.clientX, e.clientY, e.target, true);
+    });
+
+    // --- Touch Listeners (Pixel) ---
+    ui.cardInner.addEventListener('touchstart', e => {
+        handleStart(e.touches[0].clientX, e.touches[0].clientY, false);
+    }, { passive: true });
+
+    ui.cardInner.addEventListener('touchend', e => {
+        handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target, false);
+    }, { passive: true });
+
+    // --- Button Click Listener ---
+    // This exclusively handles buttons and prevents them from triggering the flip
+    ui.cardInner.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
+        e.stopPropagation();
+        
+        if (btn.classList.contains('freq-up')) handleFrequencyChange(1);
+        if (btn.classList.contains('freq-down')) handleFrequencyChange(-1);
+        if (btn.classList.contains('audio-btn')) playAudio();
+    });
+
     ui.cardInner.dataset.initialized = 'true';
 }
 
