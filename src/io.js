@@ -23,11 +23,43 @@ export const load = (key) => {
 /**
  * NEW: Fetches the list of deck files available on GitHub
  */
-export async function fetchRemoteDeckList() {
-    const response = await fetch(REPO_CONFIG.apiUrl);
-    if (!response.ok) throw new Error("GitHub API unavailable");
-    const files = await response.json();
-    return files.filter(f => f.name.endsWith('.deck'));
+// export async function fetchRemoteDeckList(path) {
+//     // Pass the 'path' argument into our new helper method
+//     const url = REPO_CONFIG.getContentsUrl(path);
+    
+//     const response = await fetch(url);
+//     if (!response.ok) throw new Error("GitHub API unavailable");
+//     return await response.json();
+// }
+
+
+// export async function fetchRemoteDeckList(path) {
+//     try {
+//         const url = REPO_CONFIG.getContentsUrl(path);
+//         const response = await fetch(url);
+//         if (!response.ok) throw new Error(`GitHub API Error: ${response.status}`);
+//         return await response.json();
+//     } catch (err) {
+//         console.error("Fetch failed:", err);
+//         throw err;
+//     }
+// }
+
+// Independent function - Pixel-proof
+export async function fetchRemoteDeckList(subPath) {
+    // Determine the exact path to query
+    const targetPath = subPath || REPO_CONFIG.basePath;
+    
+    // Construct URL manually
+    const url = `https://api.github.com/repos/${REPO_CONFIG.owner}/${REPO_CONFIG.repo}/contents/${targetPath}`;
+    
+    console.log("Fetching from:", url); // Verify this in your Pixel's remote debugger if needed
+
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`GitHub API Error: ${response.status}`);
+    }
+    return await response.json();
 }
 
 /**

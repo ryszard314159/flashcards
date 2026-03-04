@@ -11,8 +11,11 @@ export const CONFIG = {
 export const REPO_CONFIG = {
     owner: "ryszard314159",
     repo: "flashcards",
-    path: "decks",
-    get apiUrl() {
-        return `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.path}`;
-    }
+    basePath: "decks",
+    // getContentsUrl(subPath) {
+    //     // If a subPath is provided (like 'decks/spanish'), use it. 
+    //     // Otherwise, fall back to the basePath ('decks').
+    //     const targetPath = subPath || this.basePath;
+    //     return `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${targetPath}`;
+    // }
 };

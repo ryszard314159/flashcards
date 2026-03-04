@@ -1,7 +1,7 @@
 /**
  * src/app.js
  */
-import { CONFIG } from './config.js';
+import { REPO_CONFIG } from './config.js';
 import { deckReader, save, load, KEYS } from './io.js';
 import { fetchRemoteDeckList, fetchTextFromUrl, processDeckText } from './io.js';
 import { SPEECH_RATE, state } from './state.js';
@@ -324,33 +324,197 @@ async function handleImportData(cards) {
 /**
  * NEW: Logic to populate the GitHub Example Menu
  */
-async function initRemoteMenu() {
+/**
+ * SYSTEMATIC REMOTE BROWSING
+ * Tracks the current path in the GitHub repo to allow directory navigation.
+ */
+let currentRemotePath = 'decks'; // Your starting folder
+
+/**
+ * SYSTEMATIC REMOTE BROWSING
+ */
+/**
+ * SYSTEMATIC REMOTE BROWSING
+ */
+// async function initRemoteMenu(path = 'decks') {
+//     if (!ui.remoteExamplesList) return;
+    
+//     // 1. FORCE CLEAR: Wipe the UI immediately before the network request
+//     ui.remoteExamplesList.innerHTML = '<p class="hint">Loading...</p>';
+    
+//     try {
+//         const files = await fetchRemoteDeckList(path);
+        
+//         // 2. SECOND CLEAR: Wipe the "Loading..." message to start fresh
+//         ui.remoteExamplesList.innerHTML = ''; 
+
+//         // 3. Add Path Header
+//         const breadcrumb = document.createElement('div');
+//         breadcrumb.className = 'path-breadcrumb';
+//         breadcrumb.textContent = `📍 ${path}`;
+//         ui.remoteExamplesList.appendChild(breadcrumb);
+
+//         // 4. Back Button Logic
+//         if (path !== 'decks') {
+//             const pathParts = path.split('/');
+//             pathParts.pop(); 
+//             const parentPath = pathParts.join('/') || 'decks';
+            
+//             const backBtn = createRemoteItem("⬅️ .. Back", (e) => {
+//                 initRemoteMenu(parentPath);
+//             }, 'back-btn');
+//             ui.remoteExamplesList.appendChild(backBtn);
+//         }
+
+//         // 5. Render only what came back in 'files'
+//         if (files.length === 0) {
+//             const empty = document.createElement('p');
+//             empty.className = 'hint';
+//             empty.textContent = 'This folder is empty';
+//             ui.remoteExamplesList.appendChild(empty);
+//             return;
+//         }
+
+//         files.forEach(file => {
+//             if (file.type === 'dir') {
+//                 const btn = createRemoteItem(`📁 ${file.name}/`, (e) => {
+//                     initRemoteMenu(file.path); // Use the full path from GitHub
+//                 }, 'dir-item');
+//                 ui.remoteExamplesList.appendChild(btn);
+//             } else if (file.name.endsWith('.deck')) {
+//                 const btn = createRemoteItem(`📚 ${file.name.replace('.deck', '')}`, async (e) => {
+//                     const text = await fetchTextFromUrl(file.download_url);
+//                     const cards = processDeckText(text);
+//                     await handleImportData(cards);
+//                     alert(`Imported ${cards.length} cards!`);
+//                 }, 'file-item');
+//                 ui.remoteExamplesList.appendChild(btn);
+//             }
+//         });
+
+//     } catch (err) {
+//         console.error("Browser Error:", err);
+//         ui.remoteExamplesList.innerHTML = '<p class="hint">Error loading path.</p>';
+//     }
+// }
+
+// async function initRemoteMenu(path = REPO_CONFIG.basePath) {
+//     if (!ui.remoteExamplesList) return;
+    
+//     // 1. Reset UI to loading state
+//     ui.remoteExamplesList.innerHTML = '<p class="hint">Scanning GitHub...</p>';
+
+//     try {
+//         // 2. Fetch data (passing the path!)
+//         const files = await fetchRemoteDeckList(path);
+        
+//         // 3. Clear loading text
+//         ui.remoteExamplesList.innerHTML = ''; 
+
+//         // 4. Add Breadcrumb (so you know exactly where you are)
+//         const breadcrumb = document.createElement('div');
+//         breadcrumb.className = 'path-breadcrumb';
+//         breadcrumb.textContent = `📍 ${path}`;
+//         ui.remoteExamplesList.appendChild(breadcrumb);
+
+//         // 5. Add BACK button if we are in a subfolder
+//         if (path !== REPO_CONFIG.basePath) {
+//             const parts = path.split('/');
+//             parts.pop();
+//             const parentPath = parts.join('/') || REPO_CONFIG.basePath;
+            
+//             const backBtn = createRemoteItem("⬅️ .. Back", () => initRemoteMenu(parentPath), 'back-btn');
+//             ui.remoteExamplesList.appendChild(backBtn);
+//         }
+
+//         // 6. Handle empty folders
+//         if (!files || files.length === 0) {
+//             ui.remoteExamplesList.innerHTML += '<p class="hint">No files found here.</p>';
+//             return;
+//         }
+
+//         // 7. Render Files and Folders
+//         files.forEach(file => {
+//             if (file.type === 'dir') {
+//                 const btn = createRemoteItem(`📁 ${file.name}/`, () => initRemoteMenu(file.path), 'dir-item');
+//                 ui.remoteExamplesList.appendChild(btn);
+//             } else if (file.name.endsWith('.deck')) {
+//                 const btn = createRemoteItem(`📚 ${file.name.replace('.deck', '')}`, async () => {
+//                     const text = await fetchTextFromUrl(file.download_url);
+//                     const cards = processDeckText(text);
+//                     await handleImportData(cards);
+//                     alert(`Imported ${cards.length} cards!`);
+//                 }, 'file-item');
+//                 ui.remoteExamplesList.appendChild(btn);
+//             }
+//         });
+
+//     } catch (err) {
+//         console.error("Remote Menu Error:", err);
+//         ui.remoteExamplesList.innerHTML = `<p class="hint" style="color: red;">Error: ${err.message}</p>`;
+//     }
+// }
+
+async function initRemoteMenu(path = REPO_CONFIG.basePath) {
     if (!ui.remoteExamplesList) return;
     
-    try {
-        const files = await fetchRemoteDeckList();
-        ui.remoteExamplesList.innerHTML = ''; // Clear loading indicator
+    // Reset UI
+    ui.remoteExamplesList.innerHTML = '<p class="hint">Scanning GitHub...</p>';
 
+    try {
+        // This now calls our standalone function
+        const files = await fetchRemoteDeckList(path);
+        
+        ui.remoteExamplesList.innerHTML = ''; 
+
+        // Add Breadcrumb
+        const breadcrumb = document.createElement('div');
+        breadcrumb.className = 'path-breadcrumb';
+        breadcrumb.textContent = `📍 ${path}`;
+        ui.remoteExamplesList.appendChild(breadcrumb);
+
+        // BACK button
+        if (path !== REPO_CONFIG.basePath) {
+            const parts = path.split('/');
+            parts.pop();
+            const parentPath = parts.join('/') || REPO_CONFIG.basePath;
+            ui.remoteExamplesList.appendChild(createRemoteItem("⬅️ .. Back", () => initRemoteMenu(parentPath), 'back-btn'));
+        }
+
+        // Render contents
         files.forEach(file => {
-            const btn = document.createElement('button');
-            btn.className = 'menu-btn-choice';
-            btn.textContent = `📚 ${file.name.replace('.deck', '')}`;
-            
-            btn.onclick = async (e) => {
-                e.stopPropagation();
-                try {
+            if (file.type === 'dir') {
+                ui.remoteExamplesList.appendChild(createRemoteItem(`📁 ${file.name}/`, () => initRemoteMenu(file.path), 'dir-item'));
+            } else if (file.name.endsWith('.deck')) {
+                ui.remoteExamplesList.appendChild(createRemoteItem(`📚 ${file.name.replace('.deck', '')}`, async () => {
                     const text = await fetchTextFromUrl(file.download_url);
                     const cards = processDeckText(text);
                     await handleImportData(cards);
-                } catch (err) {
-                    alert("Failed to load example deck.");
-                }
-            };
-            ui.remoteExamplesList.appendChild(btn);
+                    alert(`Imported ${cards.length} cards!`);
+                }, 'file-item'));
+            }
         });
     } catch (err) {
-        ui.remoteExamplesList.innerHTML = '<p class="hint">Examples unavailable offline</p>';
+        ui.remoteExamplesList.innerHTML = `<p class="hint" style="color: red;">Error: ${err.message}</p>`;
     }
+}
+
+/**
+ * Updated Helper to strictly stop event bubbling
+ */
+function createRemoteItem(text, onClickHandler, extraClass) {
+    const btn = document.createElement('button');
+    btn.className = `remote-deck-item ${extraClass}`;
+    btn.textContent = text;
+    btn.type = "button"; // Explicitly not a 'submit' button
+    
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // VERY IMPORTANT: Stops parent elements from hearing this click
+        onClickHandler(e);
+    }, false);
+    
+    return btn;
 }
 
 function updateSessionSize(newVal) {

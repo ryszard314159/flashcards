@@ -406,6 +406,30 @@ html, body {
     color: var(--color-smoke);
 }
 
+/* Styling for the Remote Browser */
+.remote-deck-item {
+    justify-content: flex-start; /* Align text to left */
+    font-weight: 500;
+}
+
+/* Specific color for folders to distinguish them */
+.remote-deck-item.dir-item {
+    color: var(--color-ink);
+    border-left: 4px solid #ffd700; /* Gold folder accent */
+}
+
+/* Specific style for the Back button */
+.remote-deck-item.back-btn {
+    background-color: var(--color-smoke);
+    color: #666;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.remote-deck-item.file-item {
+    color: var(--color-ocean);
+}
+
 #closeImport, #closeSettings, #closeDeck, #closeSelect{
     background: none;
     border: none;
