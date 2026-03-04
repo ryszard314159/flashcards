@@ -5,10 +5,12 @@ const CACHE_NAME = CONFIG.VERSION;
 const ASSETS = [
   '/',
   '/index.html',
+  '/help.html',
   '/css/style.css',
   '/src/app.js',
-  '/src/state.js',
   '/src/config.js',
+  '/src/io.js',
+  '/src/state.js',
   '/manifest.json',
   '/icons/favicon.svg',
   '/sw.js'
