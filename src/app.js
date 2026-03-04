@@ -573,6 +573,8 @@ function setupCardListeners() {
     const TOUCH_MOVE_THRESHOLD_PX = 10;
     const MOUSE_MOVE_THRESHOLD_PX = 8;
     const TOUCH_LONG_PRESS_DURATION_MS = 250;
+    let lastFlipTime = 0; // NEW: Track when the last flip happened
+    const DEBOUNCE_MS = 250; // NEW: Ignore events within 250ms of each other
 
     // Determine environment to set the correct movement tolerance
     const isTouchEnv = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -600,6 +602,13 @@ function setupCardListeners() {
     };
 
     const handleEnd = (x, y, target, isMouse) => {
+        const now = Date.now();
+        // --- NEW MODIFICATION: The Double-Event Guard ---
+        if (now - lastFlipTime < DEBOUNCE_MS) {
+            console.log(`[DEBUG] Blocked double-fire from: ${isMouse ? 'Mouse' : 'Touch'}`);
+            return;
+        }
+
         if (touchTimer) clearTimeout(touchTimer);
         
         const diffX = Math.abs(x - startX);
@@ -627,8 +636,10 @@ function setupCardListeners() {
 
         // 4. Clean Click/Tap: Execute Flip
         console.log("[DEBUG] Executing Flip!");
+        lastFlipTime = now; // Record the time of this flip
         state.isFlipped = !ui.cardInner.classList.contains('is-flipped');
         ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
+        console.log(`[DEBUG] Executing Flip from: ${isMouse ? 'Mouse' : 'Touch'}`);
     };
 
     // --- Mouse Listeners (Desktop) ---
