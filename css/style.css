@@ -489,4 +489,79 @@ html, body {
     background-color: var(--color-ocean);
     color: white;
 }
+
+/* Help Modal Specifics */
+.help-container {
+    color: var(--color-ink);
+    line-height: 1.5;
+}
+
+.help-header h2 {
+    color: var(--color-ocean);
+    margin-bottom: 0.2rem;
+}
+
+.help-grid {
+    display: grid;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.help-card h3 {
+    font-size: 1rem;
+    border-bottom: 2px solid var(--color-smoke);
+    padding-bottom: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.help-card ul {
+    padding-left: 1.2rem;
+    margin: 0;
+}
+
+.help-card li {
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.help-footer {
+    border-top: 1px dashed var(--color-smoke);
+    padding-top: 1rem;
+    font-style: italic;
+}
+
+/* Structural Modal Styles */
+#helpOverlay.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Darkens the background */
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* Ensure it's above the menu (usually 1000) */
+    backdrop-filter: blur(4px); /* Professional touch */
+}
+
+#helpOverlay.is-visible {
+    display: flex; /* Shows it when logic calls toggleHelpModal(true) */
+}
+
+/* The actual white box containing the help text */
+#helpOverlay .modal-content {
+    background-color: #ffffff; /* CRITICAL: This makes it readable */
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    border-radius: 12px;
+    padding: 2rem;
+    overflow-y: auto; /* Allows scrolling if help text is long */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    position: relative;
+    color: var(--color-ink); /* Uses your variable for text color */
+}
+
 /* END */
+

@@ -31,6 +31,9 @@ function init() {
         filePicker: document.getElementById('filePicker'),
         frontDisplay: document.getElementById('frontDisplay'),
         frontLabel: document.getElementById('frontLabel'),
+        helpBtn: document.getElementById('helpBtn'),
+        helpContent: document.getElementById('helpContent'),
+        helpOverlay: document.getElementById('helpOverlay'),
         importBtn: document.getElementById('importBtn'),
         importOverlay: document.getElementById('importOverlay'),
         menuBtn: document.getElementById('menuBtn'),
@@ -126,6 +129,19 @@ function setupEventListeners() {
     // Keep your standard input listener for real-time filtering
     ui.searchBar.addEventListener('input', (e) => {
         handleSearch(e.target.value);
+    });
+
+    // Help Modal
+    ui.helpBtn?.addEventListener('click', () => {
+        ui.menuOverlay.classList.remove('is-visible');
+        toggleHelpModal();
+    });
+
+    ui.helpOverlay.addEventListener('click', (e) => {
+        // If they click the "Got it!" button OR the dark background area
+        if (e.target.id === 'closeHelpBtn' || e.target === ui.helpOverlay) {
+            toggleHelpModal(false);
+        }
     });
 
     // Settings Modal
@@ -959,4 +975,48 @@ function adjustSpeechRate(delta) {
     
     // Manually trigger the change event to update the state
     input.dispatchEvent(new Event('change'));
+}
+
+// async function showHelp() {
+//     // 1. Only fetch it the first time to save data
+//     if (!ui.helpContent.innerHTML.trim()) {
+//         try {
+//             const response = await fetch('help.html');
+//             const html = await response.json(); // or .text()
+//             ui.helpContent.innerHTML = html;
+//         } catch (err) {
+//             ui.helpContent.innerHTML = "Offline: Help content unavailable.";
+//         }
+//     }
+//     // 2. Show the modal
+//     ui.helpOverlay.classList.add('is-visible');
+// }
+
+async function toggleHelpModal(show = true) {
+    if (!show) {
+        ui.helpOverlay.classList.remove('is-visible');
+        return;
+    }
+
+    // 1. Check if we already loaded the content
+    const helpBody = ui.helpOverlay.querySelector('.modal-body');
+    
+    if (helpBody.innerHTML.trim() === "" || helpBody.innerHTML.includes('Loading')) {
+        helpBody.innerHTML = '<div class="loader">⌛ Loading help guide...</div>';
+        
+        try {
+            const response = await fetch('help.html');
+            if (!response.ok) throw new Error('Help file not found');
+            const html = await response.text();
+            
+            // 2. Inject the HTML
+            helpBody.innerHTML = html;
+        } catch (err) {
+            console.error("Help Load Error:", err);
+            helpBody.innerHTML = '<p style="color:red">⚠️ Error loading help. Check your connection.</p>';
+        }
+    }
+
+    // 3. Show the modal
+    ui.helpOverlay.classList.add('is-visible');
 }
