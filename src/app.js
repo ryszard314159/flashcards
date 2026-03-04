@@ -711,7 +711,9 @@ function handleSearch(query) {
 
     // Filter the master deck based on front or back text
     const searchResults = state.masterDeck.filter(card => 
-        card.frontText.toLowerCase().includes(searchTerm) || 
+        card.frontLabel.toLowerCase().includes(searchTerm) || 
+        card.backLabel.toLowerCase().includes(searchTerm)  ||
+        card.frontText.toLowerCase().includes(searchTerm)  || 
         card.backText.toLowerCase().includes(searchTerm)
     );
 
