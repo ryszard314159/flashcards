@@ -2,7 +2,7 @@
 // config.js
 // 
 export const CONFIG = {
-    VERSION: "2026-03-05.6",
+    VERSION: "2026-03-05.7",
     // You can add more here later, like:
     // DEFAULT_SPEED: 0.9,
     // DARK_MODE: true

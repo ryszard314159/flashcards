@@ -10,26 +10,28 @@ import { FREQUENCY_SETTINGS } from './state.js';
 import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
 
+let newWorker = null; // Track the new service worker for update flow
+
 let ui = {};
 
 function init() {
 
     // 1. REGISTER SERVICE WORKER (Module Type)
     if ('serviceWorker' in navigator) {
-        // Use './sw.js' instead of '/sw.js' for GitHub Pages compatibility
+        // We removed 'scope' because './' is the default behavior 
+        // when the file is in the root of the project.
         navigator.serviceWorker.register('./sw.js', { 
-            type: 'module', scope: './'
+            type: 'module' 
         })
         .then(reg => {
             console.log('SW Registered successfully');
             
-            // Optional: Check for updates
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         console.log('New content is available; please refresh.');
-                        // This is where you would show your "UPDATE" badge
+                        // Trigger your update UI
                         if(ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
                     }
                 };
@@ -331,6 +333,8 @@ function setupEventListeners() {
         resetSessionSettings();
     });
 
+    ui.updateBadge.addEventListener('click', updateApp);
+
     // TODO: connect Settings x button to Save & Restart
     // TODO: call save(KEYS.SETTINGS, state.settings) only on Close, Reset, or Save & Restart
 
@@ -352,7 +356,18 @@ function setupEventListeners() {
         save(KEYS.SETTINGS, state.settings);
     });
 
+    // 3. Listener to ensure we don't refresh twice
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+    });
+
     setupCardListeners();
+}
+
+// 4. The function called by your button (e.g., ui.updateBadge.onclick = updateApp)
+function updateApp() {
+    if (!newWorker) return;
+    newWorker.postMessage({ type: 'SKIP_WAITING' });
 }
 
 /**
