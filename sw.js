@@ -3,17 +3,16 @@ import { CONFIG } from '/src/config.js';
 const CACHE_NAME = CONFIG.VERSION; 
 
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/help.html',
-  '/css/style.css',
-  '/src/app.js',
-  '/src/config.js',
-  '/src/io.js',
-  '/src/state.js',
-  '/manifest.json',
-  '/icons/favicon.svg',
-  '/sw.js'
+  './',
+  './index.html',
+  './help.html',
+  './css/style.css',
+  './src/app.js',
+  './src/config.js',
+  './src/io.js',
+  './src/state.js',
+  './manifest.json',
+  './icons/favicon.svg',
 ];
 
 // INSTALL: Pre-cache assets but do NOT skip waiting automatically
