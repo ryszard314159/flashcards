@@ -18,7 +18,7 @@ function init() {
     if ('serviceWorker' in navigator) {
         // Use './sw.js' instead of '/sw.js' for GitHub Pages compatibility
         navigator.serviceWorker.register('./sw.js', { 
-            type: 'module' 
+            type: 'module', scope: './'
         })
         .then(reg => {
             console.log('SW Registered successfully');
