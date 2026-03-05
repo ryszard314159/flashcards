@@ -1,16 +1,16 @@
 {
-  "name": "Flashcard Pro Spain",
-  "short_name": "FlashcardPro",
-  "start_url": "index.html",
+  "name": "Flashcards",
+  "short_name": "Flash",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#2196F3",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/197/197593.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "./icons/flash.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
