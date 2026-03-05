@@ -1,6 +1,7 @@
 /**
  * src/app.js
  */
+import { CONFIG } from './config.js';
 import { REPO_CONFIG } from './config.js';
 import { deckReader, save, load, KEYS } from './io.js';
 import { fetchRemoteDeckList, fetchTextFromUrl, processDeckText } from './io.js';
@@ -53,7 +54,13 @@ function init() {
         // srsFactorInput: document.getElementById('srsFactor'),
         // srsFactorVal: document.getElementById('srsFactorVal'),
         tempInput: document.getElementById('tempInput'),
+        versionTag: document.getElementById('versionTag'),
     };
+
+    if (ui.versionTag) {
+        // Set the text to your CONFIG.VERSION (2026-03-02.0)
+        versionTag.textContent = `Version: ${CONFIG.VERSION}`;
+    }
 
     // 2. Debugging Log
     const missing = Object.keys(ui).filter(key => ui[key] === null);
