@@ -11,7 +11,7 @@
       "src": "./icons/flash.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "./icons/flash.png", 

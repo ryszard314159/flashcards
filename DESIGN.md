@@ -36,9 +36,7 @@ CARD:
 | DOWN | LABEL | UP |
 |-------------------|
 |                   |
-|      CARD         |
-|                   |
-|      TEXT         |
+|    CARD TEXT      |
 |                   |
 --------------------
 |    CARD /AUDIO    |
