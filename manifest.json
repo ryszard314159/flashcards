@@ -1,7 +1,7 @@
 {
   "name": "Flashcards",
   "short_name": "Flash",
-  "start_url": "/flashcards/index.html",
+  "start_url": "/flashcards/",
   "scope": "/flashcards/",
   "display": "standalone",
   "background_color": "#f5f5f5",
