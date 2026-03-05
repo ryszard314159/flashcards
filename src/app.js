@@ -15,28 +15,28 @@ let ui = {};
 function init() {
 
     // 1. REGISTER SERVICE WORKER (Module Type)
-    if ('serviceWorker' in navigator) {
-        // Use './sw.js' instead of '/sw.js' for GitHub Pages compatibility
-        navigator.serviceWorker.register('./sw.js', { 
-            type: 'module', scope: './'
-        })
-        .then(reg => {
-            console.log('SW Registered successfully');
+    // if ('serviceWorker' in navigator) {
+    //     // Use './sw.js' instead of '/sw.js' for GitHub Pages compatibility
+    //     navigator.serviceWorker.register('./sw.js', { 
+    //         type: 'module', scope: './'
+    //     })
+    //     .then(reg => {
+    //         console.log('SW Registered successfully');
             
-            // Optional: Check for updates
-            reg.onupdatefound = () => {
-                const installingWorker = reg.installing;
-                installingWorker.onstatechange = () => {
-                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        console.log('New content is available; please refresh.');
-                        // This is where you would show your "UPDATE" badge
-                        if(ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
-                    }
-                };
-            };
-        })
-        .catch(err => console.error('SW Registration Failed:', err));
-    }
+    //         // Optional: Check for updates
+    //         reg.onupdatefound = () => {
+    //             const installingWorker = reg.installing;
+    //             installingWorker.onstatechange = () => {
+    //                 if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+    //                     console.log('New content is available; please refresh.');
+    //                     // This is where you would show your "UPDATE" badge
+    //                     if(ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
+    //                 }
+    //             };
+    //         };
+    //     })
+    //     .catch(err => console.error('SW Registration Failed:', err));
+    // }
 
     validateConfiguration();
     // 1. Force a layout recalculation
