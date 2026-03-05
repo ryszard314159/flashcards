@@ -37,7 +37,7 @@ function init() {
         })
         .catch(err => console.error('SW Registration Failed:', err));
     }
-    
+
     validateConfiguration();
     // 1. Force a layout recalculation
     window.dispatchEvent(new Event('resize'));
@@ -79,6 +79,7 @@ function init() {
         // srsFactorInput: document.getElementById('srsFactor'),
         // srsFactorVal: document.getElementById('srsFactorVal'),
         tempInput: document.getElementById('tempInput'),
+        updateBadge: document.getElementById('updateBadge'),
         versionTag: document.getElementById('versionTag'),
     };
 

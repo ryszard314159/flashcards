@@ -1,4 +1,4 @@
-import { CONFIG } from '/src/config.js';
+import { CONFIG } from './src/config.js';
 
 const CACHE_NAME = CONFIG.VERSION; 
 
