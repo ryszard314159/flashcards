@@ -31,6 +31,7 @@ function init() {
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         console.log('New content is available; please refresh.');
+                        alert('A new version of the app is available. Click OK to update now.');
                         // Trigger your update UI
                         if(ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
                     }
