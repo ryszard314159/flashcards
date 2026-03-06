@@ -573,5 +573,12 @@ html, body {
     color: var(--color-ink); /* Uses your variable for text color */
 }
 
+.updateBadge {
+    cursor: pointer;
+    touch-action: manipulation; /* This removes the 300ms tap delay */
+    -webkit-tap-highlight-color: transparent;
+    z-index: 9999; /* Ensures it is on top of everything */
+}
+
 /* END */
 

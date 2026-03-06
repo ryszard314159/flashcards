@@ -39,11 +39,14 @@ function init() {
 
             if (ui.updateBadge) {
                 ui.updateBadge.onclick = () => {
-                    // reg.waiting is that second worker you see in DevTools
-                    if (reg.waiting) {
-                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    console.log("Badge clicked!"); // Check the console on your Pixel!
+                    alert("Badge clicked!");
+                    e.preventDefault(); 
+                    e.stopPropagation();                    
+                    const worker = reg.waiting || reg.installing;
+                    if (worker) {
+                        worker.postMessage({ type: 'SKIP_WAITING' });
                     }
-                };
             }
             
             reg.onupdatefound = () => {
