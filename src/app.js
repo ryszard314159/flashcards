@@ -26,6 +26,13 @@ function init() {
         .then(reg => {
             console.log('app: SW Registered successfully');
 
+            // --- ADD THIS BLOCK: Pre-check for already waiting worker ---
+            if (reg.waiting) {
+                console.log('app: Found a waiting worker on load!');
+                if (ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
+            }
+            // -----------------------------------------------------------
+
             reg.addEventListener('updatefound', () => {
                 console.log('app: Service Worker update detected...');
             });
