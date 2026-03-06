@@ -24,21 +24,28 @@ function init() {
             type: 'module' 
         })
         .then(reg => {
-            console.log('SW Registered successfully');
+            console.log('app: SW Registered successfully');
+
+            reg.addEventListener('updatefound', () => {
+                console.log('app: Service Worker update detected...');
+            });
             
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
+                installingWorker.addEventListener('error', (e) => {
+                    console.error('app: Installing worker encountered an error:', e);
+                });
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        console.log('New content is available; please refresh.');
-                        alert('A new version of the app is available. Click OK to update now.');
+                        console.log('app: New content is available; please refresh.');
+                        alert('app: A new version of the app is available. Click OK to update now.');
                         // Trigger your update UI
                         if(ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
                     }
                 };
             };
         })
-        .catch(err => console.error('SW Registration Failed:', err));
+        .catch(err => console.error('app: SW Registration Failed:', err));
     }
 
     validateConfiguration();
