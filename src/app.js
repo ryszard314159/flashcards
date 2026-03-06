@@ -29,6 +29,15 @@ function init() {
             reg.addEventListener('updatefound', () => {
                 console.log('app: Service Worker update detected...');
             });
+
+            if (ui.updateBadge) {
+                ui.updateBadge.onclick = () => {
+                    // reg.waiting is that second worker you see in DevTools
+                    if (reg.waiting) {
+                        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }
+                };
+            }
             
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
