@@ -18,47 +18,37 @@ function init() {
 
     // 1. REGISTER SERVICE WORKER (Module Type)
     if ('serviceWorker' in navigator) {
-        // We removed 'scope' because './' is the default behavior 
-        // when the file is in the root of the project.
         navigator.serviceWorker.register('./sw.js', { 
             type: 'module' 
         })
         .then(reg => {
             console.log('app: SW Registered successfully');
 
-            // --- ADD THIS BLOCK: Pre-check for already waiting worker ---
+            // 1. Pre-check: Does a worker exist already?
             if (reg.waiting) {
                 console.log('app: Found a waiting worker on load!');
                 if (ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
             }
-            // -----------------------------------------------------------
 
-            reg.addEventListener('updatefound', () => {
-                console.log('app: Service Worker update detected...');
-            });
-
+            // 2. Click Handler
             if (ui.updateBadge) {
-                ui.updateBadge.onclick = () => {
-                    console.log("Badge clicked!"); // Check the console on your Pixel!
-                    alert("Badge clicked!");
+                ui.updateBadge.onclick = (e) => {
+                    console.log("Badge clicked!");
                     e.preventDefault(); 
                     e.stopPropagation();                    
                     const worker = reg.waiting || reg.installing;
                     if (worker) {
                         worker.postMessage({ type: 'SKIP_WAITING' });
                     }
+                };
             }
             
+            // 3. Update Found Listener
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
-                installingWorker.addEventListener('error', (e) => {
-                    console.error('app: Installing worker encountered an error:', e);
-                });
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        console.log('app: New content is available; please refresh.');
-                        alert('app: A new version of the app is available. Click OK to update now.');
-                        // Trigger your update UI
+                        console.log('app: New content is available.');
                         if(ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
                     }
                 };
@@ -113,7 +103,6 @@ function init() {
     };
 
     if (ui.versionTag) {
-        // Set the text to your CONFIG.VERSION (2026-03-02.0)
         versionTag.textContent = `Version: ${CONFIG.VERSION}`;
     }
 
@@ -148,6 +137,10 @@ function init() {
     setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
     }, 50);
+}
+
+function updateUIVersion() {
+    ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
 }
 
 /**
@@ -360,7 +353,7 @@ function setupEventListeners() {
         resetSessionSettings();
     });
 
-    ui.updateBadge.addEventListener('click', updateApp);
+    // ui.updateBadge.addEventListener('click', updateApp);
 
     // TODO: connect Settings x button to Save & Restart
     // TODO: call save(KEYS.SETTINGS, state.settings) only on Close, Reset, or Save & Restart
@@ -385,17 +378,18 @@ function setupEventListeners() {
 
     // 3. Listener to ensure we don't refresh twice
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        updateUIVersion();
         window.location.reload();
     });
 
     setupCardListeners();
 }
 
-// 4. The function called by your button (e.g., ui.updateBadge.onclick = updateApp)
-function updateApp() {
-    if (!newWorker) return;
-    newWorker.postMessage({ type: 'SKIP_WAITING' });
-}
+// // 4. The function called by your button (e.g., ui.updateBadge.onclick = updateApp)
+// function updateApp() {
+//     if (!newWorker) return;
+//     newWorker.postMessage({ type: 'SKIP_WAITING' });
+// }
 
 /**
  * NEW: Unified handler for all import sources
