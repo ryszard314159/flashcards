@@ -466,4 +466,136 @@ describe('Core SRS Logic Functions', () => {
       expect(result).toHaveLength(1);
     });
   });
+
+  // ============================================================================
+  // flipDeck() - Deck Direction Reversal
+  // ============================================================================
+  describe('flipDeck() - Reverse study direction', () => {
+    function flipDeck(deck) {
+      if (!deck || !Array.isArray(deck)) return [];
+      return deck.map(card => ({
+        ...card,
+        frontLabel: card.backLabel,
+        backLabel: card.frontLabel,
+        frontText: card.backText,
+        backText: card.frontText
+      }));
+    }
+
+    test('should swap frontText and backText', () => {
+      const deck = [
+        {
+          id: '1',
+          frontLabel: 'Spanish',
+          backLabel: 'English',
+          frontText: 'hola',
+          backText: 'hello',
+          frequencyFactor: 0
+        }
+      ];
+
+      const result = flipDeck(deck);
+
+      expect(result[0].frontText).toBe('hello');
+      expect(result[0].backText).toBe('hola');
+    });
+
+    test('should swap frontLabel and backLabel', () => {
+      const deck = [
+        {
+          id: '1',
+          frontLabel: 'Spanish',
+          backLabel: 'English',
+          frontText: 'hola',
+          backText: 'hello',
+          frequencyFactor: 0
+        }
+      ];
+
+      const result = flipDeck(deck);
+
+      expect(result[0].frontLabel).toBe('English');
+      expect(result[0].backLabel).toBe('Spanish');
+    });
+
+    test('should preserve card id and frequencyFactor', () => {
+      const deck = [
+        {
+          id: 'abc123',
+          frontLabel: 'Spanish',
+          backLabel: 'English',
+          frontText: 'hola',
+          backText: 'hello',
+          frequencyFactor: 5
+        }
+      ];
+
+      const result = flipDeck(deck);
+
+      expect(result[0].id).toBe('abc123');
+      expect(result[0].frequencyFactor).toBe(5);
+    });
+
+    test('should handle multiple cards', () => {
+      const deck = [
+        {
+          id: '1',
+          frontLabel: 'Spanish',
+          backLabel: 'English',
+          frontText: 'hola',
+          backText: 'hello',
+          frequencyFactor: 0
+        },
+        {
+          id: '2',
+          frontLabel: 'Spanish',
+          backLabel: 'English',
+          frontText: 'adiós',
+          backText: 'goodbye',
+          frequencyFactor: 2
+        }
+      ];
+
+      const result = flipDeck(deck);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].frontText).toBe('hello');
+      expect(result[0].backText).toBe('hola');
+      expect(result[1].frontText).toBe('goodbye');
+      expect(result[1].backText).toBe('adiós');
+    });
+
+    test('should return empty array for empty input', () => {
+      const result = flipDeck([]);
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return empty array for null input', () => {
+      const result = flipDeck(null);
+
+      expect(result).toEqual([]);
+    });
+
+    test('should be reversible (flipping twice returns original)', () => {
+      const original = [
+        {
+          id: '1',
+          frontLabel: 'Spanish',
+          backLabel: 'English',
+          frontText: 'hola',
+          backText: 'hello',
+          frequencyFactor: 0
+        }
+      ];
+
+      const flipped = flipDeck(original);
+      const reverted = flipDeck(flipped);
+
+      expect(reverted[0].frontLabel).toBe(original[0].frontLabel);
+      expect(reverted[0].backLabel).toBe(original[0].backLabel);
+      expect(reverted[0].frontText).toBe(original[0].frontText);
+      expect(reverted[0].backText).toBe(original[0].backText);
+    });
+  });
 });
