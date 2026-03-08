@@ -147,15 +147,18 @@ function updateUIVersion() {
 
 /**
  * Swaps front and back properties for every card in the deck.
- * @param {Array} deck - Array of card objects {front, back, ...}
- * @returns {Array} - The transformed deck
+ * Useful for flipping the study direction (e.g., Spanish→English to English→Spanish)
+ * @param {Array} deck - Array of card objects with frontText, backText, frontLabel, backLabel
+ * @returns {Array} - The transformed deck with swapped front/back
  */
 function flipDeck(deck) {
     if (!deck || !Array.isArray(deck)) return [];
     return deck.map(card => ({
-        ...card,             // Keep other properties (id, tags, stats)
-        front: card.back,    // Move Back to Front
-        back: card.front     // Move Front to Back
+        ...card,                        // Keep other properties (id, frequencyFactor, etc.)
+        frontLabel: card.backLabel,     // Swap labels
+        backLabel: card.frontLabel,
+        frontText: card.backText,       // Swap content
+        backText: card.frontText
     }));
 }
 
@@ -298,12 +301,17 @@ function setupEventListeners() {
         if (!file) return;
         try {
             // deckReader does the reading, parsing, AND sanitizing
-            const importedDeck = await deckReader(file);
+            let importedDeck = await deckReader(file);
+
+            // Check if user wants to flip the deck
+            const flipDeckCheckbox = document.getElementById('flipDeckCheckbox');
+            if (flipDeckCheckbox && flipDeckCheckbox.checked) {
+                importedDeck = flipDeck(importedDeck);
+                console.log("Deck flipped - front/back reversed");
+                flipDeckCheckbox.checked = false; // Reset checkbox for next import
+            }
+
             await handleImportData(importedDeck);
-            // state.masterDeck = importedDeck;
-            // save(KEYS.DECK, state.masterDeck);
-            // refreshCategoryUI();
-            // applySessionLogic();
         } catch (error) {
             // alert(error);
             console.log("ERROR: filePicker: error= ", error);
@@ -315,7 +323,16 @@ function setupEventListeners() {
         if (!url) return;
         try {
             const text = await fetchTextFromUrl(url);
-            const cards = processDeckText(text);
+            let cards = processDeckText(text);
+
+            // Check if user wants to flip the deck
+            const flipDeckCheckbox = document.getElementById('flipDeckCheckbox');
+            if (flipDeckCheckbox && flipDeckCheckbox.checked) {
+                cards = flipDeck(cards);
+                console.log("Deck flipped - front/back reversed");
+                flipDeckCheckbox.checked = false; // Reset checkbox for next import
+            }
+
             await handleImportData(cards);
         } catch (err) {
             console.error("URL import failed:", err.message);
@@ -452,7 +469,16 @@ async function initRemoteMenu(path = REPO_CONFIG.basePath) {
             } else if (file.name.endsWith('.deck')) {
                 ui.remoteExamplesList.appendChild(createRemoteItem(`📚 ${file.name.replace('.deck', '')}`, async () => {
                     const text = await fetchTextFromUrl(file.download_url);
-                    const cards = processDeckText(text);
+                    let cards = processDeckText(text);
+
+                    // Check if user wants to flip the deck
+                    const flipDeckCheckbox = document.getElementById('flipDeckCheckbox');
+                    if (flipDeckCheckbox && flipDeckCheckbox.checked) {
+                        cards = flipDeck(cards);
+                        console.log("Deck flipped - front/back reversed");
+                        flipDeckCheckbox.checked = false; // Reset checkbox for next import
+                    }
+
                     await handleImportData(cards);
                     console.log(`Successfully imported ${cards.length} cards from ${file.name}`);
                 }, 'file-item'));
@@ -962,9 +988,8 @@ async function toggleHelpModal(show = true) {
             if (!response.ok) throw new Error('Help file not found');
             const html = await response.text();
 
-            // 2. Inject the HTML safely - use textContent to prevent XSS
-            // This treats the content as plain text, removing any HTML tags
-            helpBody.textContent = html;
+            // 2. Inject the HTML - help.html is a trusted app bundle, not user input
+            helpBody.innerHTML = html;
         } catch (err) {
             console.error("Help Load Error:", err);
             helpBody.innerHTML = '<p style="color:red">⚠️ Error loading help. Check your connection.</p>';
