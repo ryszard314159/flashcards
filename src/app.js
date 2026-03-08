@@ -978,7 +978,7 @@ function updateUI() {
 }
 
 function syncSettingsToUI() {
-    if (ui.sessionSizeInput) ui.sessionSizeInput.value = state.settings.sessionSize;
+    if (ui.sessionSize) ui.sessionSize.value = state.settings.sessionSize;
     if (ui.tempInput) ui.tempInput.value = state.settings.temperature;
     // if (ui.srsFactorInput) {
     //     ui.srsFactorInput.value = state.settings.srsFactor;
