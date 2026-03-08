@@ -49,7 +49,11 @@ function init() {
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         console.log('app: New content is available.');
-                        if(ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
+                        if(ui.updateBadge) {
+                            ui.updateBadge.style.display = 'inline-block';
+                        } else {
+                            console.log('app: updateBadge element not found in UI.');
+                        }
                     }
                 };
             };

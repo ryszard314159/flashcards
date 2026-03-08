@@ -5,6 +5,9 @@
     --color-snow: #f8f8ff;
     --color-ink: #212529;
     --color-smoke: #dee2e6;
+    --color-red: #ff5252;
+    --color-green: #4caf50;
+    --color-neon-green: #81c784;
     --bg-header: lightyellow;
     --bg-footer: plum;
     --bg-prev: lightcoral;
@@ -573,12 +576,124 @@ html, body {
     color: var(--color-ink); /* Uses your variable for text color */
 }
 
-.updateBadge {
+/* .updateBadge {
     cursor: pointer;
-    touch-action: manipulation; /* This removes the 300ms tap delay */
+    touch-action: manipulation; 
     -webkit-tap-highlight-color: transparent;
-    z-index: 9999; /* Ensures it is on top of everything */
+    z-index: 9999;
+} */
+/* 1. Define the "Loud" Animation */
+@keyframes loud-wobble {
+    0% { transform: translateX(0) scale(1); background-color: #ffff00; }
+    25% { transform: translateX(-5px) rotate(-5deg) scale(1.1); background-color: #ff0000; color: white; }
+    50% { transform: translateX(5px) rotate(5deg) scale(1.1); background-color: #ffff00; color: black; }
+    75% { transform: translateX(-5px) rotate(-5deg) scale(1.1); background-color: #ff0000; color: white; }
+    100% { transform: translateX(0) scale(1); background-color: #ffff00; color: black; }
 }
 
-/* END */
+
+
+/* The Pulse Animation */
+@keyframes pulse-red {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(255, 82, 82, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+    }
+}
+
+.version-info {
+    display: flex !important;       /* Forces children into a single row */
+    flex-direction: row !important;  
+    align-items: center !important;  /* Vertically centers the text and badge */
+    justify-content: center;         /* Centers the whole group in the footer */
+    gap: 10px;                      /* Adds a nice 10px space between Version and UPDATE */
+    white-space: nowrap;            /* Prevents the badge from jumping to a new line if the screen is narrow */
+}
+
+@keyframes text-glow {
+    0% {
+        opacity: 0.6;
+        text-shadow: 0 0 0px rgba(255, 82, 82, 0);
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        /* Increased blur radius (20px) to make it more visible */
+        text-shadow: 0 0 10px rgb(82, 255, 157), 0 0 20px rgba(255, 82, 82, 0.6);
+        transform: scale(1.1); 
+    }
+    100% {
+        opacity: 0.6;
+        text-shadow: 0 0 0px rgba(255, 82, 82, 0);
+        transform: scale(1);
+    }
+}
+
+@keyframes text-glow-green {
+    0% {
+        opacity: 0.6;
+        text-shadow: 0 0 0px var(--color-neon-green);
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        /* Using your palette green with the neon variable for the aura */
+        text-shadow: 0 0 8px var(--color-green), 0 0 15px var(--color-neon-green);
+        transform: scale(1.05); 
+    }
+    100% {
+        opacity: 0.6;
+        text-shadow: 0 0 0px var(--color-neon-green);
+        transform: scale(1);
+    }
+}
+
+#updateBadge {
+    display: none; 
+    cursor: pointer !important;
+    background: transparent !important;
+    border: none !important;
+    
+    /* Using your palette variable */
+    color: var(--color-green) !important; 
+    
+    font-weight: 900 !important;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    
+    animation: text-glow-green 2s ease-in-out infinite !important;
+    
+    line-height: 1;
+    vertical-align: middle;
+}
+
+#updateBadge:hover {
+    color: var(--color-neon-green) !important;
+    transition: color 0.3s ease;
+}
+/* Apply it to your badge */
+/* #updateBadge {
+    display: none; 
+    background-color: var(--color-red);
+    color: var(--color-snow);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 10px;
+    font-size:0.8rem;
+    animation: pulse-red 2s infinite;
+    z-index: 9999;
+} */
+
+/* END css/styles.css */
 
