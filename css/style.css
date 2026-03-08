@@ -443,7 +443,7 @@ html, body {
     color: var(--color-ocean);
 }
 
-#closeImport, #closeSettings, #closeDeck, #closeSelect{
+#closeImport, #closeSettings, #closeDeck, #closeSelect, #closeHelpBtn {
     background: none;
     border: none;
     font-size: 1.8rem;
