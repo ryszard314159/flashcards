@@ -1004,12 +1004,21 @@ function refreshCategoryUI() {
         const isChecked = state.activeCategories.includes(cat);
         const item = document.createElement('div');
         item.className = 'category-item';
-        item.innerHTML = `
-            <label>
-                <input type="checkbox" value="${cat}" ${isChecked ? 'checked' : ''}>
-                <span>${cat}</span>
-            </label>
-        `;
+
+        const label = document.createElement('label');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = cat;
+        checkbox.checked = isChecked;
+
+        const span = document.createElement('span');
+        span.textContent = cat;
+
+        label.appendChild(checkbox);
+        label.appendChild(span);
+        item.appendChild(label);
+
         ui.categoryList.appendChild(item);
     });
 }
@@ -1100,17 +1109,18 @@ async function toggleHelpModal(show = true) {
 
     // 1. Check if we already loaded the content
     const helpBody = ui.helpOverlay.querySelector('.modal-body');
-    
-    if (helpBody.innerHTML.trim() === "" || helpBody.innerHTML.includes('Loading')) {
+
+    if (helpBody.textContent.trim() === "" || helpBody.textContent.includes('Loading')) {
         helpBody.innerHTML = '<div class="loader">⌛ Loading help guide...</div>';
-        
+
         try {
             const response = await fetch('help.html');
             if (!response.ok) throw new Error('Help file not found');
             const html = await response.text();
-            
-            // 2. Inject the HTML
-            helpBody.innerHTML = html;
+
+            // 2. Inject the HTML safely - use textContent to prevent XSS
+            // This treats the content as plain text, removing any HTML tags
+            helpBody.textContent = html;
         } catch (err) {
             console.error("Help Load Error:", err);
             helpBody.innerHTML = '<p style="color:red">⚠️ Error loading help. Check your connection.</p>';
