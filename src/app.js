@@ -212,8 +212,8 @@ function setupEventListeners() {
     });
 
     ui.helpOverlay.addEventListener('click', (e) => {
-        // If they click the "Got it!" button OR the dark background area
-        if (e.target.id === 'closeHelpBtn' || e.target === ui.helpOverlay) {
+        // If they click the close button OR the dark background area
+        if (e.target.id === 'closeHelp' || e.target === ui.helpOverlay) {
             toggleHelpModal(false);
         }
     });
