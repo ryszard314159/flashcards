@@ -1,7 +1,7 @@
 //
 // sw.js - Service Worker for Flashcards App
 //
-// VERSION: 2026-03-08.1545
+// VERSION: 2026-03-08.1724
 import { CONFIG } from './src/config.js';
 
 const CACHE_NAME = CONFIG.VERSION; 
@@ -80,8 +80,27 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
         return;
     }
-    // For everything else (JS, CSS, images), use the cache
-    event.respondWith(caches.match(event.request).then(response => response || fetch(event.request)));
+    // For everything else (JS, CSS, images), use cache-first
+    // This ensures users see and interact with UPDATE badge before new code loads
+    event.respondWith(
+        caches.match(event.request).then((response) => {
+            if (response) {
+                return response;
+            }
+            // Not in cache, fetch from network and cache it
+            return fetch(event.request).then((response) => {
+                // Only cache successful responses
+                if (!response || response.status !== 200 || response.type === 'error') {
+                    return response;
+                }
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseToCache);
+                });
+                return response;
+            });
+        })
+    );
 });
 
 // MESSAGE: Trigger the update only when the user clicks the badge

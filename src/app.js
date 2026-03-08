@@ -11,13 +11,14 @@ import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
 
 let ui = {};
+let isRefreshing = false; // Global flag to prevent double-reload
 
 function init() {
 
     // 1. REGISTER SERVICE WORKER (Module Type)
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js', { 
-            type: 'module' 
+        navigator.serviceWorker.register('./sw.js', {
+            type: 'module'
         })
         .then(reg => {
             console.log('app: SW Registered successfully');
@@ -31,15 +32,32 @@ function init() {
             // 2. Click Handler
             if (ui.updateBadge) {
                 ui.updateBadge.onclick = (e) => {
-                    console.log("Badge clicked!");
-                    e.preventDefault(); 
-                    e.stopPropagation();                    
+                    console.log("Badge clicked! Activating new Service Worker...");
+                    e.preventDefault();
+                    e.stopPropagation();
                     const worker = reg.waiting || reg.installing;
                     if (worker) {
                         worker.postMessage({ type: 'SKIP_WAITING' });
+                        // Fallback: if oncontrollerchange doesn't fire, reload after a short delay
+                        setTimeout(() => {
+                            if (!isRefreshing) {
+                                isRefreshing = true;
+                                console.log('app: Forcing reload as controllerchange backup...');
+                                window.location.reload();
+                            }
+                        }, 500);
                     }
                 };
             }
+
+            // 2b. Reload page when new Service Worker takes control
+            navigator.serviceWorker.oncontrollerchange = () => {
+                if (!isRefreshing) {
+                    isRefreshing = true;
+                    console.log('app: New Service Worker activated, reloading page...');
+                    window.location.reload();
+                }
+            };
             
             // 3. Update Found Listener
             reg.onupdatefound = () => {
