@@ -2,12 +2,13 @@
 
 ## Overview
 
-A comprehensive Jest-based regression test suite has been created for the Flashcards PWA application. The suite provides smoke-level testing to catch breaking changes in core functionality.
+A comprehensive Jest-based regression test suite has been created for the Flashcards PWA application. The suite provides smoke-level testing to catch breaking changes in core functionality, including business logic tests and DOM integration tests.
 
 **Test Statistics:**
-- **Total Tests:** 87
+- **Total Tests:** 161 (Phase 1: 94 + Phase 2: 67)
 - **All Passing:** ✅
-- **Coverage Areas:** 4 core modules
+- **Coverage Areas:** 7 modules + DOM integration
+- **Test Environment:** Jest with JSDOM
 
 ## Running Tests
 
@@ -25,7 +26,7 @@ npm test:coverage
 
 ## Test Structure
 
-Tests are organized in `__tests__/` directory with 4 test suites:
+Tests are organized in `__tests__/` directory with 7 test suites:
 
 ### 1. **io.test.js** - Import/Export & Data Persistence (21 tests)
 
@@ -56,7 +57,7 @@ Tests the deck file parsing and localStorage functionality - the backbone of dat
 
 ---
 
-### 2. **app-core-logic.test.js** - SRS Algorithm (27 tests)
+### 2. **app-core-logic.test.js** - SRS Algorithm (34 tests)
 
 Tests the Spaced Repetition System (SRS) - the heart of the learning algorithm.
 
@@ -152,6 +153,125 @@ Tests version management and GitHub repository configuration.
 
 ---
 
+### 5. **dom-modals.test.js** - Modal State Management (22 tests)
+
+Tests modal visibility, state transitions, and HTML content injection safety.
+
+**Key Test Coverage:**
+
+- ✅ **Help Modal HTML Injection** (5 tests)
+  - Load help.html content as HTML (innerHTML, not textContent) ← Catches raw HTML display bug
+  - Content caching and re-fetch prevention
+  - Loading state during fetch
+  - Error handling on fetch failure
+
+- ✅ **Modal Visibility & Toggling** (8 tests)
+  - Settings modal opens/closes with is-visible class
+  - Import modal shows/hides correctly
+  - Remote menu toggling (open/close)
+  - Menu overlay toggling with class management
+  - Close buttons properly remove is-visible class
+  - Overlay click (outside modal) closes modal
+
+- ✅ **Modal Content & State** (7 tests)
+  - Settings modal inputs synced to state
+  - Category selector modal renders checkboxes dynamically
+  - Deck selector collects checked categories on apply
+  - Import options modal flipDeck checkbox state tracked
+  - Help modal contains expected HTML structure
+  - Remote menu shows breadcrumb path
+  - Remote menu error display on API failure
+  - Modal stacking prevention (opening new modal closes previous)
+
+**Why it matters:** Modals are critical UI components. These tests catch visibility bugs, HTML injection vulnerabilities, and state synchronization issues that could confuse users.
+
+---
+
+### 6. **dom-interactions.test.js** - User Interactions & Input Binding (22 tests)
+
+Tests user interactions, debouncing, CSS class application, and form input binding.
+
+**Key Test Coverage:**
+
+- ✅ **Card Flip Interactions** (3 tests)
+  - Card flip toggles is-flipped class on card inner
+  - Card flip debounce blocks second flip within 250ms
+  - Card flip is removed on navigation
+
+- ✅ **Frequency Feedback Animations** (3 tests)
+  - Frequency change adds feedback-up or feedback-down class
+  - Frequency feedback class auto-removes after 500ms
+  - Frequency feedback re-triggers correctly after removal
+
+- ✅ **Search & Filter Interactions** (3 tests)
+  - Search input updates card counter display
+  - Empty query returns full deck
+  - Search with results displays correct filtered cards
+
+- ✅ **Category & Checkbox Interactions** (3 tests)
+  - Category checkboxes have correct checked state
+  - Select All button checks all checkboxes
+  - Select None button unchecks all checkboxes
+
+- ✅ **Input Value Binding** (6 tests)
+  - Temperature input value updates on change
+  - Temperature adjustment buttons increment/decrement
+  - Temperature change triggers probability recalculation
+  - Session size input clamped to valid range
+  - Speech rate input updates correctly
+  - Input focus auto-selects text content
+
+- ✅ **Settings Synchronization** (4 tests)
+  - Settings values synced to inputs on modal open
+  - Input changes reflect in state object
+  - Range constraints enforced
+
+**Why it matters:** User interactions drive the learning experience. These tests catch bugs in debouncing (preventing accidental double-flips), input binding (ensuring UI reflects state), and animation timing (feedback visibility).
+
+---
+
+### 7. **dom-content.test.js** - DOM Content Updates & Text Rendering (23 tests)
+
+Tests DOM content accuracy, text rendering, and HTML structure preservation.
+
+**Key Test Coverage:**
+
+- ✅ **Card Display Content** (6 tests)
+  - Card display shows correct front label
+  - Card display shows correct back label
+  - Card display shows correct front text (word-for-word)
+  - Card display shows correct back text
+  - Card counter format "currentIndex + 1 / deckLength"
+  - Card counter updates when navigating cards
+
+- ✅ **Version Tag** (2 tests)
+  - Version tag updated on app load
+  - Version tag format follows YYYY-MM-DD.HHMM pattern
+
+- ✅ **Category List Rendering** (3 tests)
+  - Category list cleared and rebuilt on refresh
+  - Category items labeled correctly
+  - Category checkboxes have proper structure
+
+- ✅ **Modal HTML Content** (2 tests)
+  - Modal-body innerHTML contains HTML elements (not plain text)
+  - Modal-body preserves nested structure
+
+- ✅ **Search & Counter Updates** (3 tests)
+  - Card counter updates when filtering by search
+  - Counter resets to 1 after search
+  - Counter updates with deck size changes
+
+- ✅ **Empty States & Special Content** (4 tests)
+  - Empty deck shows "Please import" message
+  - Search with no results shows correct counter (0 / 0)
+  - Remote examples list shows breadcrumb path
+  - Remote menu updates on directory navigation
+
+**Why it matters:** Text display accuracy is critical for learning (students need to see correct content), and HTML injection prevents XSS vulnerabilities and raw HTML display bugs like the one discovered in the help modal.
+
+---
+
 ## Test Infrastructure
 
 ### Mocking Setup (`jest.setup.js`)
@@ -159,15 +279,18 @@ Tests version management and GitHub repository configuration.
 Global mocks are configured for:
 
 ```javascript
-localStorage          // localStorage mock with in-memory store
-fetch API            // Network requests (fallback version)
-speechSynthesis      // Text-to-speech API
+localStorage               // localStorage mock with in-memory store
+fetch API                  // Network requests (fallback version)
+speechSynthesis           // Text-to-speech API
 SpeechSynthesisUtterance  // Speech utterance constructor
+DOM Elements              // All UI elements mocked with classList support
+document.getElementById   // Element lookup with mock element registry
+document.querySelector    // CSS selector lookup with mock fallbacks
 ```
 
 ### Jest Configuration (`jest.config.js`)
 
-- **testEnvironment:** `node` (no DOM required for regression tests)
+- **testEnvironment:** `jsdom` (provides DOM API for JSDOM tests)
 - **Language:** ES6 modules (matches app's native module format)
 - **Test pattern:** `__tests__/**/*.test.js`
 
@@ -192,16 +315,15 @@ SpeechSynthesisUtterance  // Speech utterance constructor
 - State configuration and bounds
 - Text filtering/search
 - Import/export data handling
+- **NEW Phase 2:** DOM content rendering, modal state, CSS class application, input binding
 
-### ❌ Not Tested (DOM/UI Related)
-- Modal open/close behavior
-- Event listener wiring
-- CSS animations and styling
+### ❌ Not Tested (Visual/Style Related)
+- CSS animations and transitions (hard to test in jsdom)
 - Service Worker caching
-- DOM manipulation
-- User interaction flows
+- Responsive design and layout
+- Accessibility (ARIA labels)
 
-**Reasoning:** These are harder to test without a full browser environment. The regression suite focuses on business logic that's most likely to break from code changes. UI bugs are caught through manual testing or could be added with tools like Playwright later.
+**Reasoning:** Functional DOM testing catches logic bugs and state issues. Visual and accessibility testing require different tools (e.g., visual regression with Percy, accessibility with Axe). The current suite focuses on business logic and functional correctness.
 
 ---
 
@@ -268,10 +390,13 @@ Potential additions to the test suite:
 | Module | Tests | Focus |
 |--------|-------|-------|
 | **io.test.js** | 21 | Deck parsing, file I/O, persistence |
-| **app-core-logic.test.js** | 27 | SRS algorithm, card selection, search |
-| **state.test.js** | 23 | Configuration, state structure |
-| **config.test.js** | 7 | Version, repository config |
-| **TOTAL** | **87** | Regression coverage |
+| **app-core-logic.test.js** | 34 | SRS algorithm, card selection, search, flip |
+| **state.test.js** | 31 | Configuration, state structure |
+| **config.test.js** | 8 | Version, repository config |
+| **dom-modals.test.js** | 22 | Modal state, HTML injection, visibility |
+| **dom-interactions.test.js** | 22 | User interactions, debouncing, input binding |
+| **dom-content.test.js** | 23 | DOM content, text rendering, structure |
+| **TOTAL** | **161** | Phase 1 (94) + Phase 2 (67) |
 
 ---
 
