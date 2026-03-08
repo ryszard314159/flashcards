@@ -148,6 +148,20 @@ function updateUIVersion() {
 }
 
 /**
+ * Swaps front and back properties for every card in the deck.
+ * @param {Array} deck - Array of card objects {front, back, ...}
+ * @returns {Array} - The transformed deck
+ */
+function flipDeck(deck) {
+    if (!deck || !Array.isArray(deck)) return [];
+    return deck.map(card => ({
+        ...card,             // Keep other properties (id, tags, stats)
+        front: card.back,    // Move Back to Front
+        back: card.front     // Move Front to Back
+    }));
+}
+
+/**
  * Custom Assertion: Fails loudly if condition is false.
  * @param {boolean} condition - The truth to check.
  * @param {string} message - Description of the expected state.
