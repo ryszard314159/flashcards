@@ -118,6 +118,7 @@ function init() {
         settingsBtn: document.getElementById('settingsBtn'),
         settingsOverlay: document.getElementById('settingsOverlay'),
         speechRateInput: document.getElementById('speechRateInput'),
+        modeSelect: document.getElementById('modeSelect'),
         remoteExamplesList: document.getElementById('remoteExamplesList'),
         // srsFactorInput: document.getElementById('srsFactor'),
         // srsFactorVal: document.getElementById('srsFactorVal'),
@@ -255,6 +256,12 @@ function setupEventListeners() {
         save(KEYS.SETTINGS, state.settings);
         ui.settingsOverlay.classList.remove('is-visible');
         applySessionLogic();
+    });
+
+    ui.modeSelect?.addEventListener('change', (e) => {
+        state.settings.selectionMode = e.target.value;
+        applySessionLogic();  // Regenerate deck with new mode
+        console.log(`Card selection mode: ${e.target.value}`);
     });
 
     // Deck Selector Modal
@@ -866,7 +873,18 @@ function applySessionLogic() {
     const temp = state.settings.temperature;
     assert(temp >= 0.01, "Temperature must be at least 0.01", { temp });
 
-    state.currentSessionDeck = generateSessionDeck(filteredCards, size, temp);
+    // Route to appropriate card selection mode
+    const mode = state.settings.selectionMode;
+    if (mode === 'weighted') {
+        state.currentSessionDeck = generateSessionDeck(filteredCards, size, temp);
+    } else if (mode === 'sequential') {
+        // Linear mode: take cards in original deck order
+        state.currentSessionDeck = filteredCards.slice(0, size);
+    } else {
+        // Fallback to weighted
+        state.currentSessionDeck = generateSessionDeck(filteredCards, size, temp);
+    }
+
     state.currentCardIndex = 0;
     updateUI();
 }
@@ -891,12 +909,14 @@ function syncSettingsToUI() {
     //     ui.srsFactorVal.textContent = state.settings.srsFactor;
     // }
     if (ui.speechRateInput) ui.speechRateInput.value = state.settings.speechRate;
+    if (ui.modeSelect) ui.modeSelect.value = state.settings.selectionMode;
 }
 
 function updateStateFromUI() {
     state.settings.sessionSize = parseInt(ui.sessionSize.value);
     state.settings.temperature = parseFloat(ui.tempInput.value);
     state.settings.speechRate = parseFloat(ui.speechRateInput.value);
+    state.settings.selectionMode = ui.modeSelect?.value || 'weighted';
 }
 
 function refreshCategoryUI() {
