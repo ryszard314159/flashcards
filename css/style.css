@@ -681,16 +681,45 @@ html, body {
     transition: color 0.3s ease;
 }
 
+/* Version tag base styling */
+#versionTag {
+    color: #666; /* Dark grey text */
+    background-color: transparent;
+    padding: 0.25rem 0.5rem; /* Small padding for pulsating background effect */
+    border-radius: 0.3rem;
+    transition: all 0.2s ease;
+}
+
+/* Pulsating background animation - white to fluorescent green */
+@keyframes version-pulse {
+    0% {
+        background-color: transparent;
+        color: #666;
+    }
+    50% {
+        background-color: var(--color-neon-green); /* Fluorescent green */
+        color: var(--color-ink); /* Dark text on green background */
+    }
+    100% {
+        background-color: transparent;
+        color: #666;
+    }
+}
+
 /* Version tag update indicator - replaces separate UPDATE badge */
 #versionTag.is-update-available {
     cursor: pointer;
-    color: var(--color-green);
-    animation: text-glow-green 2s ease-in-out infinite;
+    /* Adjustable parameters below: */
+    animation: version-pulse 8s ease-in-out infinite; /* Change 2s to speed up/slow down */
+    /* animation: version-pulse 1s ease-in-out infinite;   <- FASTER (1 second) */
+    /* animation: version-pulse 3s ease-in-out infinite;   <- SLOWER (3 seconds) */
+    /* animation: version-pulse 2s linear infinite;        <- LINEAR (no easing, constant pace) */
+    /* animation: version-pulse 2s ease-in infinite;       <- EASE-IN (speeds up) */
 }
 
 #versionTag.is-update-available:hover {
-    color: var(--color-neon-green);
-    transition: color 0.3s ease;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
 }
 /* Apply it to your badge */
 /* #updateBadge {
