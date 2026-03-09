@@ -127,7 +127,7 @@ function init() {
     };
 
     if (ui.versionTag) {
-        versionTag.textContent = `Version: ${CONFIG.VERSION}`;
+        ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
     }
 
     // 2. Debugging Log

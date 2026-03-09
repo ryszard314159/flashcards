@@ -1,7 +1,7 @@
 //
 // sw.js - Service Worker for Flashcards App
 //
-// VERSION: 2026-03-09.1031
+// VERSION: 2026-03-09.1913
 import { CONFIG } from './src/config.js';
 
 const CACHE_NAME = CONFIG.VERSION; 
