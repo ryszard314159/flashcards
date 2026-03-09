@@ -710,7 +710,8 @@ html, body {
 #versionTag.is-update-available {
     cursor: pointer;
     /* Adjustable parameters below: */
-    animation: version-pulse 8s ease-in-out infinite; /* Change 2s to speed up/slow down */
+    /* animation: version-pulse 8s ease-in-out infinite; Change 2s to speed up/slow down */
+    animation: version-pulse 8s ease-in-out infinite;
     /* animation: version-pulse 1s ease-in-out infinite;   <- FASTER (1 second) */
     /* animation: version-pulse 3s ease-in-out infinite;   <- SLOWER (3 seconds) */
     /* animation: version-pulse 2s linear infinite;        <- LINEAR (no easing, constant pace) */
