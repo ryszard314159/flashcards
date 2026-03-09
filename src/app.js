@@ -300,8 +300,11 @@ function setupEventListeners() {
 
     ui.nextZone?.addEventListener('click', (e) => {
         e.stopPropagation();
-        // navigate(1);
-        drawCard(); // No more navigate(1)!
+        if (state.settings.selectionMode === 'sequential') {
+            navigate(1);
+        } else {
+            drawCard();
+        }
     });
 
     ui.prevZone?.addEventListener('click', (e) => {
