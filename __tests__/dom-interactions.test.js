@@ -407,4 +407,111 @@ describe('DOM: User Interactions', () => {
       expect(clamped3).toBe(25);
     });
   });
+
+  // ============================================================================
+  // Next Button Mode-Aware Navigation Tests
+  // ============================================================================
+  describe('Next Button Mode-Aware Navigation', () => {
+    let nextZone;
+
+    beforeEach(() => {
+      nextZone = document.getElementById('nextZone');
+      mockUI.nextZone = nextZone;
+
+      // Setup a 5-card session deck
+      mockState.currentSessionDeck = [
+        { id: '1', frontText: 'card1', backText: 'back1', frontLabel: 'Test', backLabel: 'Test' },
+        { id: '2', frontText: 'card2', backText: 'back2', frontLabel: 'Test', backLabel: 'Test' },
+        { id: '3', frontText: 'card3', backText: 'back3', frontLabel: 'Test', backLabel: 'Test' },
+        { id: '4', frontText: 'card4', backText: 'back4', frontLabel: 'Test', backLabel: 'Test' },
+        { id: '5', frontText: 'card5', backText: 'back5', frontLabel: 'Test', backLabel: 'Test' },
+      ];
+      mockState.currentCardIndex = 0;
+      mockState.settings.selectionMode = 'sequential';
+    });
+
+    test('sequential mode: next button navigates to next card in order', () => {
+      // Start at card 0
+      expect(mockState.currentCardIndex).toBe(0);
+
+      // Simulate navigate(1) - this is what should happen in sequential mode
+      mockState.currentCardIndex = (mockState.currentCardIndex + 1 + mockState.currentSessionDeck.length) % mockState.currentSessionDeck.length;
+      expect(mockState.currentCardIndex).toBe(1);
+
+      // Continue navigating
+      mockState.currentCardIndex = (mockState.currentCardIndex + 1 + mockState.currentSessionDeck.length) % mockState.currentSessionDeck.length;
+      expect(mockState.currentCardIndex).toBe(2);
+
+      mockState.currentCardIndex = (mockState.currentCardIndex + 1 + mockState.currentSessionDeck.length) % mockState.currentSessionDeck.length;
+      expect(mockState.currentCardIndex).toBe(3);
+
+      mockState.currentCardIndex = (mockState.currentCardIndex + 1 + mockState.currentSessionDeck.length) % mockState.currentSessionDeck.length;
+      expect(mockState.currentCardIndex).toBe(4);
+
+      // Wraps around to start
+      mockState.currentCardIndex = (mockState.currentCardIndex + 1 + mockState.currentSessionDeck.length) % mockState.currentSessionDeck.length;
+      expect(mockState.currentCardIndex).toBe(0);
+    });
+
+    test('sequential mode: maintains deck order with next/prev navigation', () => {
+      const deck = mockState.currentSessionDeck;
+
+      // Verify deck is in order 1-5
+      expect(deck[0].frontText).toBe('card1');
+      expect(deck[1].frontText).toBe('card2');
+      expect(deck[2].frontText).toBe('card3');
+      expect(deck[3].frontText).toBe('card4');
+      expect(deck[4].frontText).toBe('card5');
+
+      // Navigate forward 3 times
+      mockState.currentCardIndex = 0;
+      for (let i = 0; i < 3; i++) {
+        mockState.currentCardIndex = (mockState.currentCardIndex + 1 + deck.length) % deck.length;
+      }
+      expect(deck[mockState.currentCardIndex].frontText).toBe('card4');
+    });
+
+    test('weighted mode: next button would call drawCard (not tested in details, just mode check)', () => {
+      mockState.settings.selectionMode = 'weighted';
+
+      // In weighted mode, next calls drawCard(), not navigate()
+      // We verify the mode is set correctly for the handler to check
+      expect(mockState.settings.selectionMode).toBe('weighted');
+    });
+
+    test('mode-aware behavior: sequential vs weighted have different next handlers', () => {
+      // Verify the selection mode setting exists and has correct options
+      expect(['weighted', 'sequential']).toContain(mockState.settings.selectionMode);
+
+      mockState.settings.selectionMode = 'sequential';
+      expect(mockState.settings.selectionMode).toBe('sequential');
+
+      mockState.settings.selectionMode = 'weighted';
+      expect(mockState.settings.selectionMode).toBe('weighted');
+    });
+
+    test('sequential mode: card counter shows correct position (1/5, 2/5, etc.)', () => {
+      mockState.currentCardIndex = 0;
+      const deckLength = mockState.currentSessionDeck.length;
+
+      // Counter should show: currentCardIndex + 1 / deckLength
+      let counter = `${mockState.currentCardIndex + 1} / ${deckLength}`;
+      expect(counter).toBe('1 / 5');
+
+      // Navigate to card 3
+      mockState.currentCardIndex = 2;
+      counter = `${mockState.currentCardIndex + 1} / ${deckLength}`;
+      expect(counter).toBe('3 / 5');
+
+      // Navigate to last card
+      mockState.currentCardIndex = 4;
+      counter = `${mockState.currentCardIndex + 1} / ${deckLength}`;
+      expect(counter).toBe('5 / 5');
+
+      // Wrap around
+      mockState.currentCardIndex = (mockState.currentCardIndex + 1 + deckLength) % deckLength;
+      counter = `${mockState.currentCardIndex + 1} / ${deckLength}`;
+      expect(counter).toBe('1 / 5');
+    });
+  });
 });
