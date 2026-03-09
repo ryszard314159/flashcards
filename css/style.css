@@ -657,27 +657,39 @@ html, body {
 }
 
 #updateBadge {
-    display: none; 
+    display: none;
     cursor: pointer !important;
     background: transparent !important;
     border: none !important;
-    
+
     /* Using your palette variable */
-    color: var(--color-green) !important; 
-    
+    color: var(--color-green) !important;
+
     font-weight: 900 !important;
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    
+
     animation: text-glow-green 2s ease-in-out infinite !important;
-    
+
     line-height: 1;
     vertical-align: middle;
 }
 
 #updateBadge:hover {
     color: var(--color-neon-green) !important;
+    transition: color 0.3s ease;
+}
+
+/* Version tag update indicator - replaces separate UPDATE badge */
+#versionTag.is-update-available {
+    cursor: pointer;
+    color: var(--color-green);
+    animation: text-glow-green 2s ease-in-out infinite;
+}
+
+#versionTag.is-update-available:hover {
+    color: var(--color-neon-green);
     transition: color 0.3s ease;
 }
 /* Apply it to your badge */

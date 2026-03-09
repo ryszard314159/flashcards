@@ -26,13 +26,17 @@ function init() {
             // 1. Pre-check: Does a worker exist already?
             if (reg.waiting) {
                 console.log('app: Found a waiting worker on load!');
-                if (ui.updateBadge) ui.updateBadge.style.display = 'inline-block';
+                if (ui.versionTag) ui.versionTag.classList.add('is-update-available');
             }
 
-            // 2. Click Handler
-            if (ui.updateBadge) {
-                ui.updateBadge.onclick = (e) => {
-                    console.log("Badge clicked! Activating new Service Worker...");
+            // 2. Click Handler on versionTag
+            if (ui.versionTag) {
+                ui.versionTag.style.cursor = 'pointer';
+                ui.versionTag.onclick = (e) => {
+                    if (!ui.versionTag.classList.contains('is-update-available')) {
+                        return; // Only allow click if update is available
+                    }
+                    console.log("Version clicked! Activating new Service Worker...");
                     e.preventDefault();
                     e.stopPropagation();
                     const worker = reg.waiting || reg.installing;
@@ -65,10 +69,10 @@ function init() {
                 installingWorker.onstatechange = () => {
                     if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                         console.log('app: New content is available.');
-                        if(ui.updateBadge) {
-                            ui.updateBadge.style.display = 'inline-block';
+                        if (ui.versionTag) {
+                            ui.versionTag.classList.add('is-update-available');
                         } else {
-                            console.log('app: updateBadge element not found in UI.');
+                            console.log('app: versionTag element not found in UI.');
                         }
                     }
                 };
@@ -118,7 +122,6 @@ function init() {
         // srsFactorInput: document.getElementById('srsFactor'),
         // srsFactorVal: document.getElementById('srsFactorVal'),
         tempInput: document.getElementById('tempInput'),
-        updateBadge: document.getElementById('updateBadge'),
         versionTag: document.getElementById('versionTag'),
     };
 

@@ -1,7 +1,7 @@
 //
 // sw.js - Service Worker for Flashcards App
 //
-// VERSION: 2026-03-08.1724
+// VERSION: 2026-03-09.0902
 import { CONFIG } from './src/config.js';
 
 const CACHE_NAME = CONFIG.VERSION; 
@@ -81,7 +81,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     // For everything else (JS, CSS, images), use cache-first
-    // This ensures users see and interact with UPDATE badge before new code loads
+    // This ensures users see and interact with the version tag before new code loads
     event.respondWith(
         caches.match(event.request).then((response) => {
             if (response) {
@@ -103,7 +103,7 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// MESSAGE: Trigger the update only when the user clicks the badge
+// MESSAGE: Trigger the update only when the user clicks the version tag
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
