@@ -18,7 +18,14 @@ const NEXT_ZONE_LONG_PRESS_MS = 500;
 let modeToastTimer = null;
 const NEXT_ZONE_DEBUG_ALERT = false;
 
+// Speech Synthesis Cache
+let availableVoices = [];
+let voicesLoaded = false;
+
 function init() {
+
+    // Load voices for speech synthesis
+    loadAvailableVoices();
 
     // 1. REGISTER SERVICE WORKER (Module Type)
     if ('serviceWorker' in navigator) {
@@ -67,7 +74,7 @@ function init() {
                     window.location.reload();
                 }
             };
-            
+
             // 3. Update Found Listener
             reg.onupdatefound = () => {
                 const installingWorker = reg.installing;
@@ -160,9 +167,9 @@ function init() {
     } else {
         ui.frontDisplay.textContent = "Please import a .deck file";
     }
-    
+
     console.log("init: UI Initialized. FilePicker is:", ui.filePicker);
-    
+
     setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
     }, 50);
@@ -189,7 +196,7 @@ function assert(condition, message, context = null) {
 }
 
 function validateConfiguration() {
-    const x = SCORE_SETTINGS;   
+    const x = SCORE_SETTINGS;
     assert(typeof x.delta === 'number' && x.delta > 0, "Config: delta must be > 0");
     assert(typeof x.min === 'number', "Config: min must be a number");
     assert(typeof x.max === 'number', "Config: max must be a number");
@@ -257,6 +264,206 @@ function debugNextZone(message, context = null) {
     }
 }
 
+/**
+ * Load available voices from the Web Speech API
+ * Voices are loaded asynchronously on some browsers
+ */
+function loadAvailableVoices() {
+    if (voicesLoaded) return;
+
+    const updateVoiceList = () => {
+        availableVoices = window.speechSynthesis.getVoices();
+        if (availableVoices.length > 0) {
+            voicesLoaded = true;
+            if (DEBUG) {
+                console.log(`[Speech] Loaded ${availableVoices.length} voices:`,
+                    availableVoices.map(v => `${v.name} (${v.lang})`).join(', '));
+            }
+        }
+    };
+
+    updateVoiceList();
+    window.speechSynthesis.onvoiceschanged = updateVoiceList;
+}
+
+/**
+ * Detect the language of a card based on its label/metadata
+ * Returns a language code like 'es-ES', 'es-MX', 'en-US', etc.
+ */
+function detectLanguageFromCard(card, { isBack = false, textOverride = '' } = {}) {
+    if (!card) return 'en-US';
+
+    const activeLabel = ((isBack ? card.backLabel : card.frontLabel) || '').toLowerCase();
+    const oppositeLabel = ((isBack ? card.frontLabel : card.backLabel) || '').toLowerCase();
+    const activeText = (textOverride || (isBack ? card.backText : card.frontText) || '').toLowerCase();
+
+    // 1) Explicit label mapping first
+    if (activeLabel.includes('spanish') || oppositeLabel.includes('spanish')) {
+        return state.settings.spanishVariant || 'es-ES';
+    }
+    if (activeLabel.includes('french') || oppositeLabel.includes('french') || activeLabel.includes('france')) {
+        return 'fr-FR';
+    }
+    if (activeLabel.includes('german') || oppositeLabel.includes('german')) {
+        return 'de-DE';
+    }
+    if (activeLabel.includes('italian') || oppositeLabel.includes('italian')) {
+        return 'it-IT';
+    }
+    if (activeLabel.includes('portuguese') || oppositeLabel.includes('portuguese')) {
+        return 'pt-BR';
+    }
+    if (activeLabel.includes('japanese') || oppositeLabel.includes('japanese')) {
+        return 'ja-JP';
+    }
+    if (activeLabel.includes('chinese') || activeLabel.includes('mandarin') || oppositeLabel.includes('chinese')) {
+        return 'zh-CN';
+    }
+
+    // 2) Heuristic Spanish text detection for old decks without voice metadata
+    const hasSpanishChars = /[¿¡ñáéíóúü]/i.test(activeText);
+    const spanishWordHints = /\b(el|la|los|las|de|del|que|como|cómo|estás|vamos|nosotros|nosotras|usted|ustedes|gracias|hola)\b/i;
+    if (hasSpanishChars || spanishWordHints.test(activeText)) {
+        return state.settings.spanishVariant || 'es-ES';
+    }
+
+    return 'en-US';
+}
+
+/**
+ * Parse a voice specification string like "Google español (es-ES)" or "Google US English (en-US)"
+ * Returns { name: "Google ...", lang: "es-ES" } or null if invalid
+ */
+function parseVoiceSpec(voiceSpec) {
+    if (!voiceSpec) return null;
+
+    const match = voiceSpec.match(/^(.+?)\s*\(([a-z]{2}-[A-Z]{2})\)$/);
+    if (!match) return null;
+
+    return {
+        name: match[1].trim(),
+        lang: match[2]
+    };
+}
+
+/**
+ * Find a voice by name and language, or by exact name match
+ * Priority: Exact name match > Language match > Fallback
+ */
+function selectVoiceBySpec(voiceSpec) {
+    if (!window.speechSynthesis || !voiceSpec) return null;
+
+    // Ensure voices are loaded
+    if (availableVoices.length === 0) {
+        availableVoices = window.speechSynthesis.getVoices();
+    }
+
+    // Parse the spec string
+    const spec = parseVoiceSpec(voiceSpec);
+    if (!spec) {
+        if (DEBUG) console.warn(`[Speech] Invalid voice spec: "${voiceSpec}"`);
+        return null;
+    }
+
+    const { name, lang } = spec;
+
+    // Try to find exact name match first
+    let exactMatch = availableVoices.find(v => v.name === name && v.lang === lang);
+    if (exactMatch) {
+        if (DEBUG) console.log(`[Speech] Found exact voice: ${name} (${lang})`);
+        return exactMatch;
+    }
+
+    // Try name match with any language
+    let nameMatch = availableVoices.find(v => v.name === name);
+    if (nameMatch) {
+        if (DEBUG) console.log(`[Speech] Found voice by name (different lang): ${nameMatch.name} (${nameMatch.lang})`);
+        return nameMatch;
+    }
+
+    // Try language match with the requested lang
+    let langMatch = availableVoices.find(v => v.lang === lang);
+    if (langMatch) {
+        if (DEBUG) console.log(`[Speech] Found voice by language: ${langMatch.name} (${lang})`);
+        return langMatch;
+    }
+
+    // No match found
+    if (DEBUG) console.warn(`[Speech] Voice not found: ${name} (${lang})`);
+    return null;
+}
+
+/**
+ * Select the best voice for a given language code (fallback auto-detection)
+ * Prioritizes native speakers and high-quality voices
+ */
+function selectBestVoiceForLanguage(langCode) {
+    if (!window.speechSynthesis) return null;
+
+    // Ensure voices are loaded
+    if (availableVoices.length === 0) {
+        availableVoices = window.speechSynthesis.getVoices();
+    }
+
+    const baseLang = langCode.split('-')[0]; // Extract 'es' from 'es-MX'
+
+    // Priority: Exact match > Same language > Fallback
+    let exactMatch = availableVoices.find(v => v.lang === langCode);
+    if (exactMatch) return exactMatch;
+
+    // Find voices for the same language (different region)
+    let sameLanguageVoices = availableVoices.filter(v => v.lang.startsWith(baseLang + '-'));
+
+    // Prioritize: Google voices > higher quality > first available
+    if (sameLanguageVoices.length > 0) {
+        // Try to find Google Cloud voices first (they're usually higher quality)
+        let googleVoice = sameLanguageVoices.find(v => v.name.toLowerCase().includes('google'));
+        if (googleVoice) return googleVoice;
+
+        // Otherwise return the first available voice for this language
+        return sameLanguageVoices[0];
+    }
+
+    // Fallback: return first available voice
+    if (availableVoices.length > 0) {
+        if (DEBUG) {
+            console.warn(`[Speech] No voice found for ${langCode}, using default:`, availableVoices[0].name);
+        }
+        return availableVoices[0];
+    }
+
+    return null;
+}
+
+function resolveVoiceSpecForSide(card, isBack) {
+    if (!card) return null;
+
+    const sideKey = isBack ? 'backVoice' : 'frontVoice';
+    const oppositeKey = isBack ? 'frontVoice' : 'backVoice';
+
+    // 1) Current card in session deck
+    if (card[sideKey]) return card[sideKey];
+
+    // 2) Recover from master deck by id
+    if (card.id && Array.isArray(state.masterDeck)) {
+        const fromMaster = state.masterDeck.find(c => c.id === card.id);
+        if (fromMaster?.[sideKey]) return fromMaster[sideKey];
+        // Fallback: if deck was flipped and voice keys were not swapped in old data,
+        // we still prefer having an explicit voice rather than auto-detect.
+        if (fromMaster?.[oppositeKey]) return fromMaster[oppositeKey];
+    }
+
+    // 3) Deck defaults from any card that carries voice metadata
+    if (Array.isArray(state.masterDeck)) {
+        const withVoice = state.masterDeck.find(c => c?.frontVoice || c?.backVoice);
+        if (withVoice?.[sideKey]) return withVoice[sideKey];
+        if (withVoice?.[oppositeKey]) return withVoice[oppositeKey];
+    }
+
+    return null;
+}
+
+
 function setSelectionMode(mode, { persist = true } = {}) {
     assert(mode === 'weighted' || mode === 'sequential', `Invalid selection mode: ${mode}`, { mode });
     state.settings.selectionMode = mode;
@@ -312,7 +519,7 @@ function setupEventListeners() {
 
     ui.searchBar.addEventListener('search', (e) => {
     // This triggers when the user clicks the native "X" or presses the keyboard Search button
-        handleSearch(e.target.value); 
+        handleSearch(e.target.value);
     });
 
     // Keep your standard input listener for real-time filtering
@@ -366,7 +573,7 @@ function setupEventListeners() {
     ui.closeDeck.addEventListener('click', () => {
         const checkboxes = ui.categoryList.querySelectorAll('input:checked');
         state.activeCategories = Array.from(checkboxes).map(cb => cb.value);
-        
+
         // Safety: if nothing is selected, prevent closing and log warning
         if (state.activeCategories.length === 0) {
             console.warn("Category selection: At least one category must be selected.");
@@ -458,11 +665,11 @@ function setupEventListeners() {
 
     ui.importBtn.addEventListener('click', () => {
         // 1. Hide the main menu overlay
-        ui.menuOverlay.classList.remove('is-visible'); 
-        
+        ui.menuOverlay.classList.remove('is-visible');
+
         // 2. Show the new import options overlay
-        ui.importOverlay.classList.add('is-visible');  
-    });    
+        ui.importOverlay.classList.add('is-visible');
+    });
 
     ui.filePicker.addEventListener('change', async (e) => {
         console.log("DEBUG: File selected:", e.target.files);
@@ -566,8 +773,8 @@ function setupEventListeners() {
      */
     [ui.tempInput, ui.sessionSize, ui.speechRateInput].forEach(el => {
         el.addEventListener('focus', (e) => {
-            // We use a tiny timeout because some browsers 
-            // reset the cursor AFTER the focus event fires, 
+            // We use a tiny timeout because some browsers
+            // reset the cursor AFTER the focus event fires,
             // which would undo our selection.
             setTimeout(() => {  e.target.select();}, 50);
         });
@@ -601,15 +808,15 @@ async function handleImportData(cards) {
  */
 async function initRemoteMenu(path = REPO_CONFIG.basePath) {
     if (!ui.remoteExamplesList) return;
-    
+
     // Reset UI
     ui.remoteExamplesList.innerHTML = '<p class="hint">Scanning GitHub...</p>';
 
     try {
         // This now calls our standalone function
         const files = await fetchRemoteDeckList(path);
-        
-        ui.remoteExamplesList.innerHTML = ''; 
+
+        ui.remoteExamplesList.innerHTML = '';
 
         // Add Breadcrumb
         const breadcrumb = document.createElement('div');
@@ -660,13 +867,13 @@ function createRemoteItem(text, onClickHandler, extraClass) {
     btn.className = `remote-deck-item ${extraClass}`;
     btn.textContent = text;
     btn.type = "button"; // Explicitly not a 'submit' button
-    
+
     btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation(); // VERY IMPORTANT: Stops parent elements from hearing this click
         onClickHandler(e);
     }, false);
-    
+
     return btn;
 }
 
@@ -726,14 +933,14 @@ function setupCardListeners() {
         startX = x;
         startY = y;
         isLongPress = false;
-        
+
         if (touchTimer) clearTimeout(touchTimer);
-        
-        // Desktop users natively click-and-drag to select text, 
+
+        // Desktop users natively click-and-drag to select text,
         // so we ONLY need the long-press timer for touch devices.
         if (!isMouse) {
-            touchTimer = setTimeout(() => { 
-                isLongPress = true; 
+            touchTimer = setTimeout(() => {
+                isLongPress = true;
             }, TOUCH_LONG_PRESS_DURATION_MS);
         }
     };
@@ -747,7 +954,7 @@ function setupCardListeners() {
         }
 
         if (touchTimer) clearTimeout(touchTimer);
-        
+
         const diffX = Math.abs(x - startX);
         const diffY = Math.abs(y - startY);
 
@@ -806,7 +1013,7 @@ function setupCardListeners() {
         if (!btn) return;
 
         e.stopPropagation();
-        
+
         if (btn.classList.contains('freq-up')) handleFrequencyChange(1);
         if (btn.classList.contains('freq-down')) handleFrequencyChange(-1);
         if (btn.classList.contains('audio-btn')) playAudio();
@@ -817,7 +1024,7 @@ function setupCardListeners() {
 
 function handleFrequencyChange(change) {
     const card = state.currentSessionDeck[state.currentCardIndex];
-    
+
     // 1. Assert Entry State
     assert(!!card, "No card selected for frequency change.");
     assert(typeof card.score === 'number', "Card missing score", card);
@@ -834,10 +1041,10 @@ function handleFrequencyChange(change) {
 
 function handleSearch(query) {
     const searchTerm = query.toLowerCase().trim();
-    
+
     if (searchTerm === "") {
         // If search is empty, go back to the normal session deck
-        applySessionLogic(); 
+        applySessionLogic();
         return;
     }
 
@@ -892,7 +1099,7 @@ function drawCard() {
     // 2. The Logic: Draw a weighted index from the CURRENT session pool
     // We pass our current session deck into the weighted picker
     const nextCard = pickWeightedCard(state.currentSessionDeck, state.settings.temperature);
-    
+
     // 3. Update the pointer so frequency buttons hit the right card
     state.currentCardIndex = state.currentSessionDeck.indexOf(nextCard);
 
@@ -913,7 +1120,7 @@ function applySessionLogic() {
         state.activeCategories = [...new Set(state.masterDeck.map(c => c.frontLabel))];
     }
 
-    let filteredCards = state.masterDeck.filter(card => 
+    let filteredCards = state.masterDeck.filter(card =>
         state.activeCategories.includes(card.frontLabel)
     );
 
@@ -922,8 +1129,8 @@ function applySessionLogic() {
     // --- MINIMAL CHANGE START ---
     // Instead of using filteredCards.length, use the setting from state
     const requestedSize = state.settings.sessionSize || 0;
-    
-    // If requestedSize is 0, we take the whole filtered deck, 
+
+    // If requestedSize is 0, we take the whole filtered deck,
     // otherwise we cap it at the number of available cards.
     const size = (requestedSize > 0) ? Math.min(requestedSize, filteredCards.length) : filteredCards.length;
     // --- MINIMAL CHANGE END ---
@@ -1014,7 +1221,7 @@ function provideVisualFeedback(type) {
 
     // Remove existing classes to allow re-triggering
     card.classList.remove('feedback-up', 'feedback-down');
-    
+
     // Force a reflow to restart the animation
     void card.offsetWidth;
 
@@ -1041,20 +1248,60 @@ function playAudio() {
     // Stop any existing speech
     window.speechSynthesis.cancel();
 
-    // Determine text based on flip state
+    // Determine text and voice preference based on flip state
     const textToSpeak = state.isFlipped ? card.backText : card.frontText;
-    
+    const voiceSpec = resolveVoiceSpecForSide(card, state.isFlipped);
+
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    
+
+    let selectedVoice = null;
+    let languageCode = null;
+
+    // Priority 1: Use card's voice specification if available
+    if (voiceSpec) {
+        selectedVoice = selectVoiceBySpec(voiceSpec);
+        if (selectedVoice) {
+            languageCode = selectedVoice.lang;
+            utterance.voice = selectedVoice;
+            utterance.lang = languageCode;
+        }
+    }
+
+    // Priority 2: Fall back to language detection from card metadata
+    if (!selectedVoice) {
+        languageCode = detectLanguageFromCard(card, {
+            isBack: state.isFlipped,
+            textOverride: textToSpeak
+        });
+        utterance.lang = languageCode;
+        selectedVoice = selectBestVoiceForLanguage(languageCode);
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+    }
+
     // Use the speech rate from our settings slider
     utterance.rate = state.settings.speechRate || 1.0;
-    
-    // Optional: Auto-detect language if your labels are "Spanish" or "French"
-    // utterance.lang = 'en-US'; 
+
+    // Optional: Adjust pitch slightly for clarity (especially Spanish)
+    if (languageCode && languageCode.startsWith('es-')) {
+        utterance.pitch = 1.0; // Neutral pitch for Spanish
+    }
+
+    if (DEBUG) {
+        console.log(`[Speech] Speaking (${state.isFlipped ? 'Back' : 'Front'}):`, {
+            text: textToSpeak,
+            voiceSpec: voiceSpec || 'auto-detected',
+            language: languageCode,
+            voice: selectedVoice ? selectedVoice.name : 'default',
+            rate: utterance.rate,
+            pitch: utterance.pitch
+        });
+    } else {
+        console.log(`Speaking (${state.isFlipped ? 'Back' : 'Front'}): ${textToSpeak}`);
+    }
 
     window.speechSynthesis.speak(utterance);
-    
-    console.log(`Speaking (${state.isFlipped ? 'Back' : 'Front'}): ${textToSpeak}`);
 }
 
 function adjustSpeechRate(delta) {
@@ -1063,10 +1310,10 @@ function adjustSpeechRate(delta) {
 
     const currentVal = parseFloat(input.value) || 1.0;
     const newVal = currentVal + delta;
-    
+
     // We don't even need an 'if' here, just clamp it
     input.value = Math.max(0.5, Math.min(2.0, newVal)).toFixed(1);
-    
+
     // Manually trigger the change event to update the state
     input.dispatchEvent(new Event('change'));
 }
