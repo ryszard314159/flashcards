@@ -205,35 +205,35 @@ function validateConfiguration() {
 
 function assertRequiredUI() {
     const required = [
-        'menuBtn',
-        'menuOverlay',
-        'searchBar',
-        'helpBtn',
-        'helpOverlay',
-        'settingsBtn',
-        'settingsOverlay',
-        'closeSettings',
-        'saveSettingsBtn',
-        'modeSelect',
-        'deckBtn',
-        'deckOverlay',
-        'closeDeck',
+        'cardInner',
         'categoryList',
-        'nextZone',
-        'prevZone',
-        'importBtn',
-        'importOverlay',
-        'filePicker',
-        'importUrlBtn',
+        'closeDeck',
         'closeImport',
         'closeSelect',
+        'closeSettings',
+        'deckBtn',
+        'deckOverlay',
+        'filePicker',
+        'helpBtn',
+        'helpOverlay',
+        'importBtn',
+        'importOverlay',
+        'importUrlBtn',
+        'menuBtn',
+        'menuOverlay',
+        'modeSelect',
+        'nextZone',
+        'prevZone',
+        'resetSessionBtn',
+        'saveSettingsBtn',
+        'searchBar',
         'selectAllBtn',
         'selectNoneBtn',
-        'tempInput',
         'sessionSize',
+        'settingsBtn',
+        'settingsOverlay',
         'speechRateInput',
-        'resetSessionBtn',
-        'cardInner',
+        'tempInput',
         'versionTag'
     ];
 
@@ -288,51 +288,57 @@ function loadAvailableVoices() {
 
 /**
  * Detect the language of a card based on its label/metadata
- * Returns a language code like 'es-ES', 'es-MX', 'en-US', etc.
+ * Returns a BCP-47 language code like 'en-US', 'fr-FR', 'de-DE'.
  */
+function getDefaultSpeechLang() {
+    const browserLang = (navigator.language || '').trim();
+    return browserLang || 'en-US';
+}
+
 function detectLanguageFromCard(card, { isBack = false, textOverride = '' } = {}) {
-    if (!card) return 'en-US';
+    if (!card) return getDefaultSpeechLang();
 
     const activeLabel = ((isBack ? card.backLabel : card.frontLabel) || '').toLowerCase();
     const oppositeLabel = ((isBack ? card.frontLabel : card.backLabel) || '').toLowerCase();
-    const activeText = (textOverride || (isBack ? card.backText : card.frontText) || '').toLowerCase();
+    const activeText = (textOverride || (isBack ? card.backText : card.frontText) || '');
 
-    // 1) Explicit label mapping first
-    if (activeLabel.includes('spanish') || oppositeLabel.includes('spanish')) {
-        return state.settings.spanishVariant || 'es-ES';
-    }
-    if (activeLabel.includes('french') || oppositeLabel.includes('french') || activeLabel.includes('france')) {
-        return 'fr-FR';
-    }
-    if (activeLabel.includes('german') || oppositeLabel.includes('german')) {
-        return 'de-DE';
-    }
-    if (activeLabel.includes('italian') || oppositeLabel.includes('italian')) {
-        return 'it-IT';
-    }
-    if (activeLabel.includes('portuguese') || oppositeLabel.includes('portuguese')) {
-        return 'pt-BR';
-    }
-    if (activeLabel.includes('japanese') || oppositeLabel.includes('japanese')) {
-        return 'ja-JP';
-    }
-    if (activeLabel.includes('chinese') || activeLabel.includes('mandarin') || oppositeLabel.includes('chinese')) {
-        return 'zh-CN';
+    // 1) Explicit language metadata if present on cards
+    const explicitLang = isBack ? card.backLang : card.frontLang;
+    if (typeof explicitLang === 'string' && explicitLang.trim()) {
+        return explicitLang.trim();
     }
 
-    // 2) Heuristic Spanish text detection for old decks without voice metadata
-    const hasSpanishChars = /[¿¡ñáéíóúü]/i.test(activeText);
-    const spanishWordHints = /\b(el|la|los|las|de|del|que|como|cómo|estás|vamos|nosotros|nosotras|usted|ustedes|gracias|hola)\b/i;
-    if (hasSpanishChars || spanishWordHints.test(activeText)) {
-        return state.settings.spanishVariant || 'es-ES';
+    // 2) Generic label hints
+    const labelText = `${activeLabel} ${oppositeLabel}`;
+    const labelHints = [
+        { keywords: ['english'], lang: 'en-US' },
+        { keywords: ['french', 'france'], lang: 'fr-FR' },
+        { keywords: ['german'], lang: 'de-DE' },
+        { keywords: ['italian'], lang: 'it-IT' },
+        { keywords: ['portuguese'], lang: 'pt-BR' },
+        { keywords: ['japanese'], lang: 'ja-JP' },
+        { keywords: ['chinese', 'mandarin'], lang: 'zh-CN' },
+        { keywords: ['spanish'], lang: 'es-ES' }
+    ];
+    for (const hint of labelHints) {
+        if (hint.keywords.some(k => labelText.includes(k))) {
+            return hint.lang;
+        }
     }
 
-    return 'en-US';
+    // 3) Script-based hints for unlabeled content
+    if (/[\u3040-\u30ff]/.test(activeText)) return 'ja-JP';
+    if (/[\u4e00-\u9fff]/.test(activeText)) return 'zh-CN';
+    if (/[\u0400-\u04FF]/.test(activeText)) return 'ru-RU';
+    if (/[\u0600-\u06FF]/.test(activeText)) return 'ar-SA';
+    if (/[\u0900-\u097F]/.test(activeText)) return 'hi-IN';
+
+    return getDefaultSpeechLang();
 }
 
 /**
- * Parse a voice specification string like "Google español (es-ES)" or "Google US English (en-US)"
- * Returns { name: "Google ...", lang: "es-ES" } or null if invalid
+ * Parse a voice specification string like "Voice Name (en-US)"
+ * Returns { name: "Voice Name", lang: "en-US" } or null if invalid
  */
 function parseVoiceSpec(voiceSpec) {
     if (!voiceSpec) return null;
@@ -388,6 +394,14 @@ function selectVoiceBySpec(voiceSpec) {
         return langMatch;
     }
 
+    // Try same base language (e.g. es-MX when es-ES was requested)
+    const baseLang = lang.split('-')[0];
+    const sameBaseLang = availableVoices.find(v => v.lang && v.lang.startsWith(baseLang + '-'));
+    if (sameBaseLang) {
+        if (DEBUG) console.log(`[Speech] Found voice by base language: ${sameBaseLang.name} (${sameBaseLang.lang})`);
+        return sameBaseLang;
+    }
+
     // No match found
     if (DEBUG) console.warn(`[Speech] Voice not found: ${name} (${lang})`);
     return null;
@@ -405,7 +419,7 @@ function selectBestVoiceForLanguage(langCode) {
         availableVoices = window.speechSynthesis.getVoices();
     }
 
-    const baseLang = langCode.split('-')[0]; // Extract 'es' from 'es-MX'
+    const baseLang = langCode.split('-')[0]; // Extract base language from locale code
 
     // Priority: Exact match > Same language > Fallback
     let exactMatch = availableVoices.find(v => v.lang === langCode);
@@ -424,14 +438,10 @@ function selectBestVoiceForLanguage(langCode) {
         return sameLanguageVoices[0];
     }
 
-    // Fallback: return first available voice
-    if (availableVoices.length > 0) {
-        if (DEBUG) {
-            console.warn(`[Speech] No voice found for ${langCode}, using default:`, availableVoices[0].name);
-        }
-        return availableVoices[0];
+    // If no matching language voice exists, return null and let utterance.lang guide engine defaulting.
+    if (DEBUG) {
+        console.warn(`[Speech] No matching voice found for ${langCode}; using browser default voice for that locale.`);
     }
-
     return null;
 }
 
@@ -1259,16 +1269,31 @@ function playAudio() {
 
     // Priority 1: Use card's voice specification if available
     if (voiceSpec) {
+        const parsedVoiceSpec = parseVoiceSpec(voiceSpec);
+        // Even if exact voice name is unavailable, preserve requested locale from deck metadata.
+        if (parsedVoiceSpec?.lang) {
+            languageCode = parsedVoiceSpec.lang;
+            utterance.lang = languageCode;
+        }
+
         selectedVoice = selectVoiceBySpec(voiceSpec);
         if (selectedVoice) {
             languageCode = selectedVoice.lang;
             utterance.voice = selectedVoice;
             utterance.lang = languageCode;
+        } else if (parsedVoiceSpec?.lang) {
+            selectedVoice = selectBestVoiceForLanguage(parsedVoiceSpec.lang);
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+                utterance.lang = selectedVoice.lang;
+                languageCode = selectedVoice.lang;
+            }
         }
     }
 
-    // Priority 2: Fall back to language detection from card metadata
-    if (!selectedVoice) {
+    // Priority 2: Fall back to language detection only when no language was resolved yet.
+    // If voiceSpec provided a locale (e.g. es-ES), keep it even when no matching installed voice exists.
+    if (!selectedVoice && !languageCode) {
         languageCode = detectLanguageFromCard(card, {
             isBack: state.isFlipped,
             textOverride: textToSpeak
@@ -1282,11 +1307,7 @@ function playAudio() {
 
     // Use the speech rate from our settings slider
     utterance.rate = state.settings.speechRate || 1.0;
-
-    // Optional: Adjust pitch slightly for clarity (especially Spanish)
-    if (languageCode && languageCode.startsWith('es-')) {
-        utterance.pitch = 1.0; // Neutral pitch for Spanish
-    }
+    utterance.pitch = 1.0; // Keep a neutral pitch for all content domains
 
     if (DEBUG) {
         console.log(`[Speech] Speaking (${state.isFlipped ? 'Back' : 'Front'}):`, {

@@ -80,7 +80,7 @@ export async function fetchTextFromUrl(url) {
 /**
  * MODIFIED: Internal Parsing Logic (Now used by both File and URL imports)
  * Now supports & directive for voice selection:
- *   & Front: Google US English (en-US); Back: Google español (es-ES)
+ *   & Front: Voice A (en-US); Back: Voice B (fr-FR)
  * Deck-wide behavior: one top-level '&' directive applies to all cards.
  */
 export function processDeckText(rawText) {
@@ -101,7 +101,7 @@ export function processDeckText(rawText) {
         // Parse metadata lines (e.g., ** Small talk)
         if (normalized.startsWith('**')) return;
 
-        // Parse deck-wide voice directive (e.g., & Front: Google US English (en-US); Back: Google español (es-ES))
+        // Parse deck-wide voice directive (e.g., & Front: Voice A (en-US); Back: Voice B (fr-FR))
         if (normalized.startsWith('&')) {
             foundVoiceDirective = true;
             const voiceSpec = normalized.substring(1).trim();
