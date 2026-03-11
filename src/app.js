@@ -127,9 +127,8 @@ function init() {
         versionTag: document.getElementById('versionTag'),
     };
 
-    if (ui.versionTag) {
-        ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
-    }
+    assertRequiredUI();
+    ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
 
     // 2. Debugging Log
     const missing = Object.keys(ui).filter(key => ui[key] === null);
@@ -164,9 +163,10 @@ function init() {
     }, 50);
 }
 
-function updateUIVersion() {
-    ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
-}
+// TODO: remove it
+// function updateUIVersion() {
+//     ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
+// }
 
 /**
  * Custom Assertion: Fails loudly if condition is false.
@@ -191,14 +191,51 @@ function validateConfiguration() {
     assert(x.max - x.min > x.delta, "Config: max - min must be greater than delta", { min: x.min, max: x.max });
 }
 
+function assertRequiredUI() {
+    const required = [
+        'menuBtn',
+        'menuOverlay',
+        'searchBar',
+        'helpBtn',
+        'helpOverlay',
+        'settingsBtn',
+        'settingsOverlay',
+        'closeSettings',
+        'saveSettingsBtn',
+        'modeSelect',
+        'deckBtn',
+        'deckOverlay',
+        'closeDeck',
+        'categoryList',
+        'nextZone',
+        'prevZone',
+        'importBtn',
+        'importOverlay',
+        'filePicker',
+        'importUrlBtn',
+        'closeImport',
+        'closeSelect',
+        'selectAllBtn',
+        'selectNoneBtn',
+        'tempInput',
+        'sessionSize',
+        'speechRateInput',
+        'resetSessionBtn',
+        'cardInner',
+        'versionTag'
+    ];
+
+    required.forEach(key => assert(ui[key], `UI element missing: ${key}`));
+}
+
 function setupEventListeners() {
     // Menu Toggle
-    ui.menuBtn?.addEventListener('click', (e) => {
+    ui.menuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         ui.menuOverlay.classList.toggle('is-visible');
     });
 
-    window.addEventListener('click', () => ui.menuOverlay?.classList.remove('is-visible'));
+    window.addEventListener('click', () => ui.menuOverlay.classList.remove('is-visible'));
 
     ui.searchBar.addEventListener('search', (e) => {
     // This triggers when the user clicks the native "X" or presses the keyboard Search button
@@ -211,7 +248,7 @@ function setupEventListeners() {
     });
 
     // Help Modal
-    ui.helpBtn?.addEventListener('click', () => {
+    ui.helpBtn.addEventListener('click', () => {
         ui.menuOverlay.classList.remove('is-visible');
         toggleHelpModal();
     });
@@ -224,37 +261,37 @@ function setupEventListeners() {
     });
 
     // Settings Modal
-    ui.settingsBtn?.addEventListener('click', () => {
+    ui.settingsBtn.addEventListener('click', () => {
         ui.menuOverlay.classList.remove('is-visible');
         ui.settingsOverlay.classList.add('is-visible');
     });
 
-    ui.closeSettings?.addEventListener('click', () => {
+    ui.closeSettings.addEventListener('click', () => {
         ui.settingsOverlay.classList.remove('is-visible');
         save(KEYS.SETTINGS, state.settings);
     });
 
-    ui.saveSettingsBtn?.addEventListener('click', () => {
+    ui.saveSettingsBtn.addEventListener('click', () => {
         updateStateFromUI();
         save(KEYS.SETTINGS, state.settings);
         ui.settingsOverlay.classList.remove('is-visible');
         applySessionLogic();
     });
 
-    ui.modeSelect?.addEventListener('change', (e) => {
+    ui.modeSelect.addEventListener('change', (e) => {
         state.settings.selectionMode = e.target.value;
         applySessionLogic();  // Regenerate deck with new mode
         console.log(`Card selection mode: ${e.target.value}`);
     });
 
     // Deck Selector Modal
-    ui.deckBtn?.addEventListener('click', () => {
+    ui.deckBtn.addEventListener('click', () => {
         refreshCategoryUI();
-        ui.menuOverlay?.classList.remove('is-visible');
-        ui.deckOverlay?.classList.add('is-visible');
+        ui.menuOverlay.classList.remove('is-visible');
+        ui.deckOverlay.classList.add('is-visible');
     });
 
-    ui.closeDeck?.addEventListener('click', () => {
+    ui.closeDeck.addEventListener('click', () => {
         const checkboxes = ui.categoryList.querySelectorAll('input:checked');
         state.activeCategories = Array.from(checkboxes).map(cb => cb.value);
         
@@ -264,7 +301,7 @@ function setupEventListeners() {
             return;
         }
 
-        ui.deckOverlay?.classList.remove('is-visible');
+        ui.deckOverlay.classList.remove('is-visible');
         applySessionLogic();
         save(KEYS.SETTINGS, state.settings); // Save active categories as part of settings
     });
@@ -281,7 +318,7 @@ function setupEventListeners() {
     //     ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
     // });
 
-    ui.nextZone?.addEventListener('click', (e) => {
+    ui.nextZone.addEventListener('click', (e) => {
         e.stopPropagation();
         if (state.settings.selectionMode === 'sequential') {
             navigate(1);
@@ -290,7 +327,7 @@ function setupEventListeners() {
         }
     });
 
-    ui.prevZone?.addEventListener('click', (e) => {
+    ui.prevZone.addEventListener('click', (e) => {
         e.stopPropagation();
         navigate(-1);
     });
@@ -301,7 +338,7 @@ function setupEventListeners() {
     //     ui.filePicker.click();
     // });
 
-    ui.importBtn?.addEventListener('click', () => {
+    ui.importBtn.addEventListener('click', () => {
         // 1. Hide the main menu overlay
         ui.menuOverlay.classList.remove('is-visible'); 
         
@@ -309,7 +346,7 @@ function setupEventListeners() {
         ui.importOverlay.classList.add('is-visible');  
     });    
 
-    ui.filePicker?.addEventListener('change', async (e) => {
+    ui.filePicker.addEventListener('change', async (e) => {
         console.log("DEBUG: File selected:", e.target.files);
         const file = e.target.files[0];
         if (!file) return;
@@ -332,7 +369,7 @@ function setupEventListeners() {
         }
     });
 
-    ui.importUrlBtn?.addEventListener('click', async () => {
+    ui.importUrlBtn.addEventListener('click', async () => {
         const url = prompt("Enter raw .deck URL:");
         if (!url) return;
         try {
@@ -353,20 +390,20 @@ function setupEventListeners() {
         }
     });
 
-    ui.closeImport?.addEventListener('click', () => {
+    ui.closeImport.addEventListener('click', () => {
         ui.importOverlay.classList.remove('is-visible');
     });
 
-    ui.closeSelect?.addEventListener('click', () => {
+    ui.closeSelect.addEventListener('click', () => {
         ui.deckOverlay.classList.remove('is-visible');
     });
 
-    ui.selectAllBtn?.addEventListener('click', () => {
+    ui.selectAllBtn.addEventListener('click', () => {
         const checkboxes = ui.categoryList.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = true);
     });
 
-    ui.selectNoneBtn?.addEventListener('click', () => {
+    ui.selectNoneBtn.addEventListener('click', () => {
         const checkboxes = ui.categoryList.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
     });
@@ -388,11 +425,11 @@ function setupEventListeners() {
         });
     });
 
-    ui.tempInput?.addEventListener('change', (e) => {
+    ui.tempInput.addEventListener('change', (e) => {
         updateTemperature(parseFloat(e.target.value) || TEMPERATURE.default);
     });
 
-    ui.speechRateInput?.addEventListener('change', (e) => {
+    ui.speechRateInput.addEventListener('change', (e) => {
         updateSpeechRate(parseFloat(e.target.value) || SPEECH_RATE.default);
     });
 
@@ -409,8 +446,8 @@ function setupEventListeners() {
      * Double-click to Select All
      * This allows one-click erasure/replacement
      */
-    [ui.tempInput, ui.sessionSizeInput, ui.speechRateInput].forEach(el => {
-        el?.addEventListener('focus', (e) => {
+    [ui.tempInput, ui.sessionSize, ui.speechRateInput].forEach(el => {
+        el.addEventListener('focus', (e) => {
             // We use a tiny timeout because some browsers 
             // reset the cursor AFTER the focus event fires, 
             // which would undo our selection.
