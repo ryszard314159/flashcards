@@ -97,7 +97,7 @@ export function processDeckText(rawText) {
                 frontText: parts[0].trim(),
                 backText: parts[1].trim(),
                 id: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                frequencyFactor: 0
+                score: 0
             });
         }
     });

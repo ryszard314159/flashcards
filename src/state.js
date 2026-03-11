@@ -2,7 +2,7 @@
  * src/state.js
  */
 
-export const FREQUENCY_SETTINGS = { default: 0, delta: 1, min: -9, max: 9};
+export const SCORE_SETTINGS = { default: 0, delta: 1, min: -9, max: 9};
 export const TEMPERATURE = { default: 1.0, delta: 1.0, min: 0.1, max: 10.0};
 export const SPEECH_RATE = { default: 1.0, delta: 0.5, min: 0.5, max: 1.5};
 export const SESSION_SIZE = { default: 5, delta: 1, min: 0, max: 20};

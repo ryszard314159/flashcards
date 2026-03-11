@@ -6,7 +6,7 @@ import { REPO_CONFIG } from './config.js';
 import { deckReader, save, load, KEYS } from './io.js';
 import { fetchRemoteDeckList, fetchTextFromUrl, processDeckText } from './io.js';
 import { SPEECH_RATE, state } from './state.js';
-import { FREQUENCY_SETTINGS } from './state.js';
+import { SCORE_SETTINGS } from './state.js';
 import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
 
@@ -104,6 +104,7 @@ function init() {
         helpContent: document.getElementById('helpContent'),
         helpOverlay: document.getElementById('helpOverlay'),
         importBtn: document.getElementById('importBtn'),
+        importUrlBtn: document.getElementById('importUrlBtn'),
         importOverlay: document.getElementById('importOverlay'),
         menuBtn: document.getElementById('menuBtn'),
         menuOverlay: document.getElementById('menuOverlay'),
@@ -176,7 +177,7 @@ function updateUIVersion() {
 function flipDeck(deck) {
     if (!deck || !Array.isArray(deck)) return [];
     return deck.map(card => ({
-        ...card,                        // Keep other properties (id, frequencyFactor, etc.)
+        ...card,                        // Keep other properties (id, score, etc.)
         frontLabel: card.backLabel,     // Swap labels
         backLabel: card.frontLabel,
         frontText: card.backText,       // Swap content
@@ -201,7 +202,7 @@ function assert(condition, message, context = null) {
 }
 
 function validateConfiguration() {
-    const x = FREQUENCY_SETTINGS;   
+    const x = SCORE_SETTINGS;   
     assert(typeof x.delta === 'number' && x.delta > 0, "Config: delta must be > 0");
     assert(typeof x.min === 'number', "Config: min must be a number");
     assert(typeof x.max === 'number', "Config: max must be a number");
@@ -438,12 +439,6 @@ function setupEventListeners() {
     window.addEventListener('beforeunload', () => {
         // Final emergency save just in case they didn't click 'Close'
         save(KEYS.SETTINGS, state.settings);
-    });
-
-    // 3. Listener to ensure we don't refresh twice
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        updateUIVersion();
-        window.location.reload();
     });
 
     setupCardListeners();
@@ -688,14 +683,14 @@ function handleFrequencyChange(change) {
     
     // 1. Assert Entry State
     assert(!!card, "No card selected for frequency change.");
-    assert(typeof card.frequencyFactor === 'number', "Card missing frequencyFactor", card);
+    assert(typeof card.score === 'number', "Card missing score", card);
     assert(change === 1 || change === -1, "Invalid frequency change direction", { change });
 
-    const newValue = card.frequencyFactor + (change * FREQUENCY_SETTINGS.delta);
+    const newValue = card.score + (change * SCORE_SETTINGS.delta);
     
-    card.frequencyFactor = Math.max(
-        FREQUENCY_SETTINGS.min, 
-        Math.min(FREQUENCY_SETTINGS.max, newValue)
+    card.score = Math.max(
+        SCORE_SETTINGS.min, 
+        Math.min(SCORE_SETTINGS.max, newValue)
     );
 
     // 4. Trigger Recalc
@@ -740,8 +735,8 @@ function updateProbabilities() {
     assert(typeof T === 'number' && T >= 0.01, "Temperature must be a number >= 0.01", { T });
 
     const exponents = pool.map(card => {
-        assert(typeof card.frequencyFactor === 'number', "Pool card missing factor", card);
-        return Math.exp(card.frequencyFactor / T);
+        assert(typeof card.score === 'number', "Pool card missing factor", card);
+        return Math.exp(card.score / T);
     });
 
     const sumExponents = exponents.reduce((a, b) => a + b, 0);
@@ -758,7 +753,7 @@ function generateSessionDeck(pool, sessionSize, temperature = 1.0) {
     
     // 1. Calculate exponentials with Temperature scaling
     // Higher T = flatter distribution; Lower T = more aggressive focus
-    const exps = pool.map(card => Math.exp((card.frequencyFactor || 0) / temperature));
+    const exps = pool.map(card => Math.exp((card.score || 0) / temperature));
     const sumExps = exps.reduce((a, b) => a + b, 0);
 
     let poolWithProbs = pool.map((card, index) => ({
@@ -834,7 +829,7 @@ function pickWeightedCard(pool, temperature = 1.0) {
     if (!pool || pool.length === 0) return null;
     
     const T = Math.max(temperature, 0.01);
-    const weights = pool.map(card => Math.exp((card.frequencyFactor || 0) / T));
+    const weights = pool.map(card => Math.exp((card.score || 0) / T));
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     
     let dart = Math.random() * totalWeight;

@@ -17,7 +17,7 @@ describe('Core SRS Logic Functions', () => {
 
       const T = Math.max(temperature, 0.01);
       const weights = pool.map(card =>
-        Math.exp((card.frequencyFactor || 0) / T)
+        Math.exp((card.score || 0) / T)
       );
       const totalWeight = weights.reduce((a, b) => a + b, 0);
 
@@ -30,7 +30,7 @@ describe('Core SRS Logic Functions', () => {
     }
 
     test('should select a card from single-card pool', () => {
-      const pool = [{ id: '1', frequencyFactor: 0 }];
+      const pool = [{ id: '1', score: 0 }];
       const result = pickWeightedCard(pool);
 
       expect(result).toBe(pool[0]);
@@ -50,8 +50,8 @@ describe('Core SRS Logic Functions', () => {
 
     test('should favor cards with higher frequency factors', () => {
       const pool = [
-        { id: '1', frequencyFactor: -5 },
-        { id: '2', frequencyFactor: 5 },
+        { id: '1', score: -5 },
+        { id: '2', score: 5 },
       ];
 
       // Run multiple times to check distribution
@@ -61,14 +61,14 @@ describe('Core SRS Logic Functions', () => {
         counts[card.id]++;
       }
 
-      // Card with higher frequency factor should be selected more often
+      // Card with higher score should be selected more often
       expect(counts['2']).toBeGreaterThan(counts['1']);
     });
 
     test('should handle temperature=0.1 (more aggressive focus)', () => {
       const pool = [
-        { id: '1', frequencyFactor: -5 },
-        { id: '2', frequencyFactor: 5 },
+        { id: '1', score: -5 },
+        { id: '2', score: 5 },
       ];
 
       const counts = { '1': 0, '2': 0 };
@@ -83,8 +83,8 @@ describe('Core SRS Logic Functions', () => {
 
     test('should handle temperature=10 (flatter distribution)', () => {
       const pool = [
-        { id: '1', frequencyFactor: -5 },
-        { id: '2', frequencyFactor: 5 },
+        { id: '1', score: -5 },
+        { id: '2', score: 5 },
       ];
 
       const counts = { '1': 0, '2': 0 };

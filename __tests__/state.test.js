@@ -3,35 +3,35 @@
  * Tests for application state and configuration validation
  */
 
-import { FREQUENCY_SETTINGS, TEMPERATURE, SPEECH_RATE, SESSION_SIZE, state } from '../src/state.js';
+import { SCORE_SETTINGS, TEMPERATURE, SPEECH_RATE, SESSION_SIZE, state } from '../src/state.js';
 
 describe('state.js - Application State', () => {
   // ============================================================================
-  // FREQUENCY_SETTINGS Validation
+  // SCORE_SETTINGS Validation
   // ============================================================================
-  describe('FREQUENCY_SETTINGS', () => {
+  describe('SCORE_SETTINGS', () => {
     test('should have min, max, and delta properties', () => {
-      expect(FREQUENCY_SETTINGS).toHaveProperty('min');
-      expect(FREQUENCY_SETTINGS).toHaveProperty('max');
-      expect(FREQUENCY_SETTINGS).toHaveProperty('delta');
+      expect(SCORE_SETTINGS).toHaveProperty('min');
+      expect(SCORE_SETTINGS).toHaveProperty('max');
+      expect(SCORE_SETTINGS).toHaveProperty('delta');
     });
 
     test('min should be less than max', () => {
-      expect(FREQUENCY_SETTINGS.min).toBeLessThan(FREQUENCY_SETTINGS.max);
+      expect(SCORE_SETTINGS.min).toBeLessThan(SCORE_SETTINGS.max);
     });
 
     test('delta should be positive', () => {
-      expect(FREQUENCY_SETTINGS.delta).toBeGreaterThan(0);
+      expect(SCORE_SETTINGS.delta).toBeGreaterThan(0);
     });
 
     test('max - min should be greater than delta', () => {
-      const range = FREQUENCY_SETTINGS.max - FREQUENCY_SETTINGS.min;
-      expect(range).toBeGreaterThan(FREQUENCY_SETTINGS.delta);
+      const range = SCORE_SETTINGS.max - SCORE_SETTINGS.min;
+      expect(range).toBeGreaterThan(SCORE_SETTINGS.delta);
     });
 
     test('should have reasonable bounds for -9 to 9 range', () => {
-      expect(FREQUENCY_SETTINGS.min).toEqual(-9);
-      expect(FREQUENCY_SETTINGS.max).toEqual(9);
+      expect(SCORE_SETTINGS.min).toEqual(-9);
+      expect(SCORE_SETTINGS.max).toEqual(9);
     });
   });
 

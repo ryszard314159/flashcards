@@ -23,7 +23,7 @@ gato | cat`;
         backLabel: 'English',
         frontText: 'hola',
         backText: 'hello',
-        frequencyFactor: 0,
+        score: 0,
       });
       expect(result[1]).toMatchObject({
         frontLabel: 'Spanish',

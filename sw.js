@@ -1,7 +1,7 @@
 //
 // sw.js - Service Worker for Flashcards App
 //
-// VERSION: 2026-03-09.1913
+// VERSION: 2026-03-11.1014
 import { CONFIG } from './src/config.js';
 
 const CACHE_NAME = CONFIG.VERSION; 
@@ -33,6 +33,7 @@ self.addEventListener('install', (e) => {
         console.log('sw: Opened cache');
         return cache.addAll(ASSETS);
       })
+      // TODO: make it noisy crash!
       .catch((err) => {
         // This will print to your CONSOLE if a file in ASSETS is 404ing
         console.error('sw: Service Worker installation failed: ', err);
