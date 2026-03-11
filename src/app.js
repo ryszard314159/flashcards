@@ -1,14 +1,14 @@
 /**
  * src/app.js
  */
-import { CONFIG } from './config.js';
-import { REPO_CONFIG } from './config.js';
+import { CONFIG, REPO_CONFIG, DEBUG } from './config.js';
 import { deckReader, save, load, KEYS } from './io.js';
 import { fetchRemoteDeckList, fetchTextFromUrl, processDeckText } from './io.js';
 import { SPEECH_RATE, state } from './state.js';
 import { SCORE_SETTINGS } from './state.js';
 import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
+import { pickWeightedCard, generateSessionDeck, calculateProbabilities, filterCards, flipDeck, applyScoreChange } from './srs.js';
 
 let ui = {};
 let isRefreshing = false; // Global flag to prevent double-reload
@@ -169,23 +169,6 @@ function updateUIVersion() {
 }
 
 /**
- * Swaps front and back properties for every card in the deck.
- * Useful for flipping the study direction (e.g., Spanish→English to English→Spanish)
- * @param {Array} deck - Array of card objects with frontText, backText, frontLabel, backLabel
- * @returns {Array} - The transformed deck with swapped front/back
- */
-function flipDeck(deck) {
-    if (!deck || !Array.isArray(deck)) return [];
-    return deck.map(card => ({
-        ...card,                        // Keep other properties (id, score, etc.)
-        frontLabel: card.backLabel,     // Swap labels
-        backLabel: card.frontLabel,
-        frontText: card.backText,       // Swap content
-        backText: card.frontText
-    }));
-}
-
-/**
  * Custom Assertion: Fails loudly if condition is false.
  * @param {boolean} condition - The truth to check.
  * @param {string} message - Description of the expected state.
@@ -193,10 +176,9 @@ function flipDeck(deck) {
  */
 function assert(condition, message, context = null) {
     if (!condition) {
-        // We log the message AND the object separately
         console.error(`ASSERTION FAILED: ${message}`);
-        if (context) console.dir(context); // console.dir shows the object structure clearly       
-        alert(`ASSERTION FAILED: ${message}`);
+        if (context) console.dir(context);
+        if (DEBUG) alert(`ASSERTION FAILED: ${message}`);
         throw new Error(message);
     }
 }
@@ -686,12 +668,7 @@ function handleFrequencyChange(change) {
     assert(typeof card.score === 'number', "Card missing score", card);
     assert(change === 1 || change === -1, "Invalid frequency change direction", { change });
 
-    const newValue = card.score + (change * SCORE_SETTINGS.delta);
-    
-    card.score = Math.max(
-        SCORE_SETTINGS.min, 
-        Math.min(SCORE_SETTINGS.max, newValue)
-    );
+    card.score = applyScoreChange(card.score, change);
 
     // 4. Trigger Recalc
     state.calculateProbabilities = true;
@@ -709,13 +686,7 @@ function handleSearch(query) {
         return;
     }
 
-    // Filter the master deck based on front or back text
-    const searchResults = state.masterDeck.filter(card => 
-        card.frontLabel.toLowerCase().includes(searchTerm) || 
-        card.backLabel.toLowerCase().includes(searchTerm)  ||
-        card.frontText.toLowerCase().includes(searchTerm)  || 
-        card.backText.toLowerCase().includes(searchTerm)
-    );
+    const searchResults = filterCards(state.masterDeck, query);
 
     if (searchResults.length > 0) {
         state.currentSessionDeck = searchResults;
@@ -734,62 +705,12 @@ function updateProbabilities() {
     assert(Array.isArray(pool) && pool.length > 0, "Cannot calculate probabilities for an empty pool.");
     assert(typeof T === 'number' && T >= 0.01, "Temperature must be a number >= 0.01", { T });
 
-    const exponents = pool.map(card => {
-        assert(typeof card.score === 'number', "Pool card missing factor", card);
-        return Math.exp(card.score / T);
-    });
+    pool.forEach(card => assert(typeof card.score === 'number', "Pool card missing factor", card));
 
-    const sumExponents = exponents.reduce((a, b) => a + b, 0);
-    assert(sumExponents > 0, "Sum of exponents is zero (underflow error).", { exponents });
-
-    state.sessionProbabilities = exponents.map(exp => exp / sumExponents);
+    state.sessionProbabilities = calculateProbabilities(pool, T);
     console.log("DEBUG: updateProbabilities: Updated probabilities for current session.",
         { probabilities: state.sessionProbabilities });
     state.calculateProbabilities = false;
-}
-
-function generateSessionDeck(pool, sessionSize, temperature = 1.0) {
-    if (pool.length === 0) return [];
-    
-    // 1. Calculate exponentials with Temperature scaling
-    // Higher T = flatter distribution; Lower T = more aggressive focus
-    const exps = pool.map(card => Math.exp((card.score || 0) / temperature));
-    const sumExps = exps.reduce((a, b) => a + b, 0);
-
-    let poolWithProbs = pool.map((card, index) => ({
-        card,
-        prob: exps[index] / sumExps
-    }));
-
-    const session = [];
-    const size = Math.min(sessionSize, pool.length);
-
-    // 2. Weighted Random Selection (Sampling without replacement)
-    for (let i = 0; i < size; i++) {
-        let dart = Math.random();
-        let cumulativeProb = 0;
-
-        for (let j = 0; j < poolWithProbs.length; j++) {
-            cumulativeProb += poolWithProbs[j].prob;
-            
-            if (dart <= cumulativeProb) {
-                const selected = poolWithProbs.splice(j, 1)[0];
-                session.push(selected.card);
-                
-                // Re-normalize
-                const newSum = poolWithProbs.reduce((sum, item) => sum + item.prob, 0);
-                if (newSum > 0) {
-                    poolWithProbs.forEach(item => item.prob /= newSum);
-                }
-                break;
-            }
-        }
-    }
-
-    console.log(`DEBUG: generateSessionDeck: Generated session of size ${session.length} from pool of ${pool.length} with temperature ${temperature}`);
-    console.log("DEBUG: Sample of 7 session cards:", session.slice(0, 7));
-
-    return session;
 }
 
 function navigate(direction) {
@@ -822,22 +743,6 @@ function drawCard() {
 
     // 4. Animate and update
     setTimeout(updateUI, 150);
-}
-
-// A helper to pick a single card based on weights
-function pickWeightedCard(pool, temperature = 1.0) {
-    if (!pool || pool.length === 0) return null;
-    
-    const T = Math.max(temperature, 0.01);
-    const weights = pool.map(card => Math.exp((card.score || 0) / T));
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    
-    let dart = Math.random() * totalWeight;
-    for (let i = 0; i < pool.length; i++) {
-        dart -= weights[i];
-        if (dart <= 0) return pool[i];
-    }
-    return pool[0];
 }
 
 function applySessionLogic() {

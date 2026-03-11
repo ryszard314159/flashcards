@@ -2,11 +2,14 @@
  * @file Application-wide configuration settings.
  */
 
+/** Set to false before deploying to production to silence assertion dialogs. */
+export const DEBUG = true;
+
 /**
  * General application configuration.
  */
 export const CONFIG = {
-    VERSION: "2026-03-11.1014",
+    VERSION: "2026-03-11.1051",
     // You can add more here later, like:
     // DEFAULT_SPEED: 0.9,
     // DARK_MODE: true
