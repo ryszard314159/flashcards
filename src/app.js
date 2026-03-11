@@ -12,6 +12,11 @@ import { pickWeightedCard, generateSessionDeck, calculateProbabilities, filterCa
 
 let ui = {};
 let isRefreshing = false; // Global flag to prevent double-reload
+let nextZoneLongPressTimer = null;
+let nextZoneLongPressTriggered = false;
+const NEXT_ZONE_LONG_PRESS_MS = 500;
+let modeToastTimer = null;
+const NEXT_ZONE_DEBUG_ALERT = false;
 
 function init() {
 
@@ -228,6 +233,74 @@ function assertRequiredUI() {
     required.forEach(key => assert(ui[key], `UI element missing: ${key}`));
 }
 
+function updateNextZoneModeIcon() {
+    const isWeighted = state.settings.selectionMode === 'weighted';
+    ui.nextZone.classList.toggle('mode-weighted', isWeighted);
+    ui.nextZone.classList.toggle('mode-sequential', !isWeighted);
+    ui.nextZone.textContent = isWeighted ? '🔀' : '>';
+    ui.nextZone.setAttribute('aria-label', isWeighted ? 'Shuffle mode' : 'Next mode');
+    if (DEBUG) {
+        console.log('[nextZone] icon sync', {
+            mode: state.settings.selectionMode,
+            className: ui.nextZone.className,
+            textContent: ui.nextZone.textContent
+        });
+    }
+}
+
+function debugNextZone(message, context = null) {
+    if (!DEBUG) return;
+    if (context) {
+        console.log(`[nextZone] ${message}`, context);
+    } else {
+        console.log(`[nextZone] ${message}`);
+    }
+}
+
+function setSelectionMode(mode, { persist = true } = {}) {
+    assert(mode === 'weighted' || mode === 'sequential', `Invalid selection mode: ${mode}`, { mode });
+    state.settings.selectionMode = mode;
+    if (ui.modeSelect.value !== mode) {
+        ui.modeSelect.value = mode;
+    }
+    updateNextZoneModeIcon();
+    applySessionLogic();
+    if (persist) {
+        save(KEYS.SETTINGS, state.settings);
+    }
+}
+
+function toggleSelectionModeFromNextZone() {
+    const nextMode = state.settings.selectionMode === 'sequential' ? 'weighted' : 'sequential';
+    debugNextZone('long-press fired', { currentMode: state.settings.selectionMode, nextMode });
+    setSelectionMode(nextMode);
+    showModeToast(nextMode);
+    if (DEBUG && NEXT_ZONE_DEBUG_ALERT) {
+        alert(`nextZone long-press -> ${nextMode}`);
+    }
+    console.log(`Selection mode toggled via long press: ${nextMode}`);
+}
+
+function showModeToast(mode) {
+    const text = mode === 'weighted' ? 'Mode: SRS (Shuffle)' : 'Mode: Linear (Next)';
+    let toast = document.getElementById('modeToast');
+
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'modeToast';
+        toast.className = 'mode-toast';
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent = text;
+    toast.classList.add('is-visible');
+
+    clearTimeout(modeToastTimer);
+    modeToastTimer = setTimeout(() => {
+        toast.classList.remove('is-visible');
+    }, 1200);
+}
+
 function setupEventListeners() {
     // Menu Toggle
     ui.menuBtn.addEventListener('click', (e) => {
@@ -279,8 +352,7 @@ function setupEventListeners() {
     });
 
     ui.modeSelect.addEventListener('change', (e) => {
-        state.settings.selectionMode = e.target.value;
-        applySessionLogic();  // Regenerate deck with new mode
+        setSelectionMode(e.target.value);
         console.log(`Card selection mode: ${e.target.value}`);
     });
 
@@ -320,12 +392,58 @@ function setupEventListeners() {
 
     ui.nextZone.addEventListener('click', (e) => {
         e.stopPropagation();
+        debugNextZone('click received', { longPressTriggered: nextZoneLongPressTriggered, mode: state.settings.selectionMode });
+        if (nextZoneLongPressTriggered) {
+            nextZoneLongPressTriggered = false;
+            debugNextZone('click ignored after long-press');
+            return;
+        }
         if (state.settings.selectionMode === 'sequential') {
+            debugNextZone('click action: navigate(1)');
             navigate(1);
         } else {
+            debugNextZone('click action: drawCard()');
             drawCard();
         }
     });
+
+    const startNextZoneLongPress = (source) => {
+        nextZoneLongPressTriggered = false;
+        clearTimeout(nextZoneLongPressTimer);
+        debugNextZone('long-press timer start', { source, thresholdMs: NEXT_ZONE_LONG_PRESS_MS });
+        nextZoneLongPressTimer = setTimeout(() => {
+            nextZoneLongPressTriggered = true;
+            debugNextZone('long-press timer elapsed', { source });
+            toggleSelectionModeFromNextZone();
+        }, NEXT_ZONE_LONG_PRESS_MS);
+    };
+
+    const cancelNextZoneLongPress = (reason) => {
+        debugNextZone('long-press timer cancel', { reason });
+        clearTimeout(nextZoneLongPressTimer);
+    };
+
+    if (window.PointerEvent) {
+        ui.nextZone.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            startNextZoneLongPress(`pointerdown:${e.pointerType}`);
+        });
+        ui.nextZone.addEventListener('pointerup', () => cancelNextZoneLongPress('pointerup'));
+        ui.nextZone.addEventListener('pointerleave', () => cancelNextZoneLongPress('pointerleave'));
+        ui.nextZone.addEventListener('pointercancel', () => cancelNextZoneLongPress('pointercancel'));
+    } else {
+        ui.nextZone.addEventListener('touchstart', () => startNextZoneLongPress('touchstart'), { passive: true });
+        ui.nextZone.addEventListener('touchend', () => cancelNextZoneLongPress('touchend'));
+        ui.nextZone.addEventListener('touchcancel', () => cancelNextZoneLongPress('touchcancel'));
+        ui.nextZone.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            startNextZoneLongPress('mousedown');
+        });
+        ui.nextZone.addEventListener('mouseup', () => cancelNextZoneLongPress('mouseup'));
+        ui.nextZone.addEventListener('mouseleave', () => cancelNextZoneLongPress('mouseleave'));
+    }
+
+    ui.nextZone.addEventListener('contextmenu', (e) => e.preventDefault());
 
     ui.prevZone.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -850,6 +968,7 @@ function syncSettingsToUI() {
     // }
     if (ui.speechRateInput) ui.speechRateInput.value = state.settings.speechRate;
     if (ui.modeSelect) ui.modeSelect.value = state.settings.selectionMode;
+    updateNextZoneModeIcon();
 }
 
 function updateStateFromUI() {
