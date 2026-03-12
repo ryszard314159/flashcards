@@ -2,7 +2,7 @@
 // sw.js - Service Worker for Flashcards App
 //
 // VERSION to be updated by utils/update-version.sh to "YYYY-MM-DD.HHMM"
-const VERSION = "2026-03-12.1556";
+const VERSION = "2026-03-12.1746";
 
 const CACHE_PREFIX = 'flashcards-';
 const LEGACY_VERSION_CACHE_RE = /^\d{4}-\d{2}-\d{2}\.\d{4}$/;

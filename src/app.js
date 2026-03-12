@@ -14,6 +14,7 @@ let ui = {};
 let isRefreshing = false; // Global flag to prevent double-reload
 let hasPendingUpdate = false;
 let isActivatingUpdate = false;
+let isNormalizingPhraseSelection = false;
 let nextZoneLongPressTimer = null;
 let nextZoneLongPressTriggered = false;
 const NEXT_ZONE_LONG_PRESS_MS = 500;
@@ -320,6 +321,7 @@ function init() {
 
     // 2. ALWAYS setup listeners so buttons work!
     setupEventListeners();
+    setupWholePhraseSelection();
     syncSettingsToUI();
     initRemoteMenu();
 
@@ -1192,6 +1194,44 @@ function setupCardListeners() {
     });
 
     ui.cardInner.dataset.initialized = 'true';
+}
+
+function setupWholePhraseSelection() {
+    if (document.body.dataset.wholePhraseSelectionInitialized === 'true') return;
+
+    document.addEventListener('selectionchange', () => {
+        if (isNormalizingPhraseSelection) return;
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const baseElement = container.nodeType === Node.TEXT_NODE
+            ? container.parentElement
+            : container;
+
+        const phraseElement = baseElement?.closest?.('#frontDisplay, #backDisplay');
+        if (!phraseElement) return;
+
+        const selectedText = selection.toString().trim();
+        const fullText = (phraseElement.textContent || '').trim();
+
+        // Expand Android's default single-word selection to the full phrase.
+        if (!selectedText || !fullText || selectedText === fullText) return;
+
+        isNormalizingPhraseSelection = true;
+        const fullRange = document.createRange();
+        fullRange.selectNodeContents(phraseElement);
+        selection.removeAllRanges();
+        selection.addRange(fullRange);
+
+        setTimeout(() => {
+            isNormalizingPhraseSelection = false;
+        }, 0);
+    });
+
+    document.body.dataset.wholePhraseSelectionInitialized = 'true';
 }
 
 function handleFrequencyChange(change) {
