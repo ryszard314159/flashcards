@@ -13,6 +13,7 @@ import { pickWeightedCard, generateSessionDeck, calculateProbabilities, filterCa
 let ui = {};
 let isRefreshing = false; // Global flag to prevent double-reload
 let hasPendingUpdate = false;
+let isActivatingUpdate = false;
 let nextZoneLongPressTimer = null;
 let nextZoneLongPressTriggered = false;
 const NEXT_ZONE_LONG_PRESS_MS = 500;
@@ -47,6 +48,65 @@ async function fetchLatestVersionFromNetwork() {
     }
 
     return match[1];
+}
+
+function waitForWaitingWorker(reg, timeoutMs = 8000) {
+    if (reg.waiting) {
+        return Promise.resolve(reg.waiting);
+    }
+
+    return new Promise((resolve) => {
+        let resolved = false;
+
+        const finish = (worker) => {
+            if (resolved) {
+                return;
+            }
+            resolved = true;
+            clearTimeout(timeoutId);
+            resolve(worker || null);
+        };
+
+        const tryResolveWaiting = () => {
+            if (reg.waiting) {
+                finish(reg.waiting);
+                return true;
+            }
+            return false;
+        };
+
+        const attachInstallingWatcher = (worker) => {
+            if (!worker) {
+                return;
+            }
+            worker.addEventListener('statechange', () => {
+                if (worker.state === 'installed') {
+                    tryResolveWaiting();
+                }
+            });
+        };
+
+        if (tryResolveWaiting()) {
+            return;
+        }
+
+        attachInstallingWatcher(reg.installing);
+
+        const onUpdateFound = () => {
+            attachInstallingWatcher(reg.installing);
+            tryResolveWaiting();
+        };
+
+        reg.addEventListener('updatefound', onUpdateFound, { once: true });
+
+        const timeoutId = setTimeout(() => {
+            finish(reg.waiting || null);
+        }, timeoutMs);
+
+        reg.update().catch(() => {
+            finish(reg.waiting || null);
+        });
+    });
 }
 
 function init() {
@@ -97,14 +157,23 @@ function init() {
             // 2. Click Handler on versionTag
             if (ui.versionTag) {
                 ui.versionTag.style.cursor = 'pointer';
-                ui.versionTag.onclick = (e) => {
+                ui.versionTag.onclick = async (e) => {
                     if (!ui.versionTag.classList.contains('is-update-available')) {
                         return; // Only allow click if update is available
                     }
+                    if (isActivatingUpdate) {
+                        return;
+                    }
+
                     console.log("Version clicked! Activating new Service Worker...");
                     e.preventDefault();
                     e.stopPropagation();
-                    const worker = reg.waiting || reg.installing;
+
+                    isActivatingUpdate = true;
+                    const previousCursor = ui.versionTag.style.cursor;
+                    ui.versionTag.style.cursor = 'progress';
+
+                    const worker = await waitForWaitingWorker(reg);
                     if (worker) {
                         console.log('app: Sending SKIP_WAITING to Service Worker...');
                         worker.postMessage({ type: 'SKIP_WAITING' });
@@ -118,11 +187,13 @@ function init() {
                             }
                         }, 2000);
                     } else {
-                        reg.update().catch((error) => {
-                            console.warn('app: SW update retry failed:', error);
-                        }).finally(() => {
-                            checkWaitingWorker();
-                        });
+                        console.warn('app: No waiting Service Worker found after update attempt.');
+                        checkWaitingWorker();
+                    }
+
+                    if (!isRefreshing) {
+                        isActivatingUpdate = false;
+                        ui.versionTag.style.cursor = previousCursor || 'pointer';
                     }
                 };
             }
