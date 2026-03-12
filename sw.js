@@ -37,10 +37,7 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('sw: Opened cache');
-        return cache.addAll(ASSETS);
-      })
+      .then((cache) => cache.addAll(ASSETS))
       // TODO: make it noisy crash!
       .catch((err) => {
         // This will print to your CONSOLE if a file in ASSETS is 404ing

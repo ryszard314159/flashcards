@@ -50,6 +50,15 @@ async function fetchLatestVersionFromNetwork() {
     return match[1];
 }
 
+async function hasNewerRemoteVersion() {
+    try {
+        const latestVersion = await fetchLatestVersionFromNetwork();
+        return latestVersion > CONFIG.VERSION;
+    } catch {
+        return false;
+    }
+}
+
 function waitForWaitingWorker(reg, timeoutMs = 8000) {
     if (reg.waiting) {
         return Promise.resolve(reg.waiting);
@@ -109,6 +118,45 @@ function waitForWaitingWorker(reg, timeoutMs = 8000) {
     });
 }
 
+async function activatePendingUpdateFromVersionTag(reg, versionTag, options = {}) {
+    if (!versionTag?.classList?.contains('is-update-available')) {
+        return false;
+    }
+
+    if (isActivatingUpdate) {
+        return false;
+    }
+
+    isActivatingUpdate = true;
+    const previousCursor = versionTag.style.cursor;
+    versionTag.style.cursor = 'progress';
+
+    const worker = await waitForWaitingWorker(reg);
+    if (worker) {
+        worker.postMessage({ type: 'SKIP_WAITING' });
+
+        const schedule = options.schedule || setTimeout;
+        const reload = options.reload || (() => window.location.reload());
+
+        // Fallback: if oncontrollerchange doesn't fire, reload after a delay.
+        schedule(() => {
+            if (!isRefreshing) {
+                isRefreshing = true;
+                reload();
+            }
+        }, 2000);
+    } else if (typeof options.onNoWaitingWorker === 'function') {
+        await options.onNoWaitingWorker();
+    }
+
+    if (!isRefreshing) {
+        isActivatingUpdate = false;
+        versionTag.style.cursor = previousCursor || 'pointer';
+    }
+
+    return Boolean(worker);
+}
+
 function init() {
 
     // Load voices for speech synthesis
@@ -121,13 +169,12 @@ function init() {
             updateViaCache: 'none'
         })
         .then(reg => {
-            console.log('app: SW Registered successfully');
-
             const checkWaitingWorker = () => {
                 if (reg.waiting) {
-                    console.log('app: Found a waiting worker.');
                     markUpdateAvailable();
+                    return true;
                 }
+                return false;
             };
 
             const watchInstallingWorker = (worker) => {
@@ -136,9 +183,21 @@ function init() {
                 }
                 worker.addEventListener('statechange', () => {
                     if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-                        console.log('app: New content is available.');
                         markUpdateAvailable();
                     }
+                });
+            };
+
+            const refreshUpdateStatus = () => {
+                const updateCheck = reg.update().catch(() => null);
+                const remoteVersionCheck = hasNewerRemoteVersion().then((hasRemoteUpdate) => {
+                    if (hasRemoteUpdate) {
+                        markUpdateAvailable();
+                    }
+                });
+
+                return Promise.allSettled([updateCheck, remoteVersionCheck]).finally(() => {
+                    checkWaitingWorker();
                 });
             };
 
@@ -161,40 +220,12 @@ function init() {
                     if (!ui.versionTag.classList.contains('is-update-available')) {
                         return; // Only allow click if update is available
                     }
-                    if (isActivatingUpdate) {
-                        return;
-                    }
-
-                    console.log("Version clicked! Activating new Service Worker...");
                     e.preventDefault();
                     e.stopPropagation();
 
-                    isActivatingUpdate = true;
-                    const previousCursor = ui.versionTag.style.cursor;
-                    ui.versionTag.style.cursor = 'progress';
-
-                    const worker = await waitForWaitingWorker(reg);
-                    if (worker) {
-                        console.log('app: Sending SKIP_WAITING to Service Worker...');
-                        worker.postMessage({ type: 'SKIP_WAITING' });
-                        // Fallback: if oncontrollerchange doesn't fire, reload after a longer delay
-                        // to give the new Service Worker time to cache all assets
-                        setTimeout(() => {
-                            if (!isRefreshing) {
-                                isRefreshing = true;
-                                console.log('app: Forcing reload as controllerchange backup (timeout)...');
-                                window.location.reload();
-                            }
-                        }, 2000);
-                    } else {
-                        console.warn('app: No waiting Service Worker found after update attempt.');
-                        checkWaitingWorker();
-                    }
-
-                    if (!isRefreshing) {
-                        isActivatingUpdate = false;
-                        ui.versionTag.style.cursor = previousCursor || 'pointer';
-                    }
+                    await activatePendingUpdateFromVersionTag(reg, ui.versionTag, {
+                        onNoWaitingWorker: refreshUpdateStatus,
+                    });
                 };
             }
 
@@ -202,60 +233,21 @@ function init() {
             navigator.serviceWorker.oncontrollerchange = () => {
                 if (!isRefreshing) {
                     isRefreshing = true;
-                    console.log('app: New Service Worker activated, reloading page...');
                     window.location.reload();
                 }
             };
 
-            // Trigger initial check and re-check when app returns to foreground.
-            reg.update().catch((error) => {
-                console.warn('app: SW update check failed:', error);
-            }).finally(() => {
-                checkWaitingWorker();
-            });
-
-            document.addEventListener('visibilitychange', () => {
+            const refreshWhenVisible = () => {
                 if (document.visibilityState !== 'visible') {
                     return;
                 }
-                reg.update().catch(() => {
-                    // Noisy logs on mobile are not helpful for transient network issues.
-                }).finally(() => {
-                    checkWaitingWorker();
-                });
-            });
-
-            window.addEventListener('focus', () => {
-                reg.update().catch(() => {
-                    // Ignore transient failures; next visibility/focus will retry.
-                }).finally(() => {
-                    checkWaitingWorker();
-                });
-            });
-
-            const checkRemoteVersion = () => {
-                fetchLatestVersionFromNetwork().then((latestVersion) => {
-                    if (latestVersion > CONFIG.VERSION) {
-                        console.log('app: Remote version is newer:', latestVersion);
-                        markUpdateAvailable();
-                        reg.update().catch(() => {
-                            // Ignore transient update failures; the badge is enough to inform the user.
-                        });
-                    }
-                }).catch((error) => {
-                    console.warn('app: Remote version check failed:', error);
-                });
+                refreshUpdateStatus();
             };
 
-            checkRemoteVersion();
+            refreshUpdateStatus();
 
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    checkRemoteVersion();
-                }
-            });
-
-            window.addEventListener('focus', checkRemoteVersion);
+            document.addEventListener('visibilitychange', refreshWhenVisible);
+            window.addEventListener('focus', refreshWhenVisible);
         })
         .catch(err => console.error('app: SW Registration Failed:', err));
     }
@@ -1414,11 +1406,15 @@ function provideVisualFeedback(type) {
     }, 500);
 }
 
+const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+
 // Ignition
-if (document.readyState === 'complete') {
-    init();
-} else {
-    window.addEventListener('load', init);
+if (!isTestEnvironment) {
+    if (document.readyState === 'complete') {
+        init();
+    } else {
+        window.addEventListener('load', init);
+    }
 }
 
 function playAudio() {
@@ -1494,6 +1490,14 @@ function playAudio() {
 
     window.speechSynthesis.speak(utterance);
 }
+
+// Export small pure/update helpers for regression tests.
+export {
+    waitForWaitingWorker,
+    fetchLatestVersionFromNetwork,
+    hasNewerRemoteVersion,
+    activatePendingUpdateFromVersionTag,
+};
 
 function adjustSpeechRate(delta) {
     const input = document.getElementById('speechRateInput');
