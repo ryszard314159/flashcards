@@ -662,8 +662,7 @@ function toggleSelectionModeFromNextZone() {
     console.log(`Selection mode toggled via long press: ${nextMode}`);
 }
 
-function showModeToast(mode) {
-    const text = mode === 'weighted' ? 'Mode: SRS (Shuffle)' : 'Mode: Linear (Next)';
+function showToastMessage(text, timeoutMs = 1200) {
     let toast = document.getElementById('modeToast');
 
     if (!toast) {
@@ -679,7 +678,72 @@ function showModeToast(mode) {
     clearTimeout(modeToastTimer);
     modeToastTimer = setTimeout(() => {
         toast.classList.remove('is-visible');
-    }, 1200);
+    }, timeoutMs);
+}
+
+function showModeToast(mode) {
+    const text = mode === 'weighted' ? 'Mode: SRS (Shuffle)' : 'Mode: Linear (Next)';
+    showToastMessage(text, 1200);
+}
+
+function selectWholePhrase(phraseElement) {
+    if (!phraseElement) return false;
+
+    const fullText = (phraseElement.textContent || '').trim();
+    if (!fullText) return false;
+
+    const selection = window.getSelection();
+    if (!selection) return false;
+
+    isNormalizingPhraseSelection = true;
+    const range = document.createRange();
+    range.selectNodeContents(phraseElement);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    setTimeout(() => {
+        isNormalizingPhraseSelection = false;
+    }, 0);
+
+    return true;
+}
+
+async function copyTextToClipboard(text) {
+    const safeText = (text || '').trim();
+    if (!safeText) return false;
+
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(safeText);
+            return true;
+        }
+    } catch {
+        // Fallback below.
+    }
+
+    try {
+        const tmp = document.createElement('textarea');
+        tmp.value = safeText;
+        tmp.setAttribute('readonly', '');
+        tmp.style.position = 'fixed';
+        tmp.style.opacity = '0';
+        tmp.style.left = '-9999px';
+        document.body.appendChild(tmp);
+        tmp.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(tmp);
+        return ok;
+    } catch {
+        return false;
+    }
+}
+
+async function selectAndCopyPhrase(phraseElement) {
+    if (!selectWholePhrase(phraseElement)) return;
+
+    const fullText = (phraseElement.textContent || '').trim();
+    const copied = await copyTextToClipboard(fullText);
+    showToastMessage(copied ? 'Copied phrase' : 'Selected phrase');
 }
 
 function setupEventListeners() {
@@ -1103,7 +1167,7 @@ function setupCardListeners() {
     let isLongPress = false;
 
     // We pass an explicit 'isMouse' flag to separate the logic
-    const handleStart = (x, y, isMouse) => {
+    const handleStart = (x, y, target, isMouse) => {
         startX = x;
         startY = y;
         isLongPress = false;
@@ -1115,6 +1179,11 @@ function setupCardListeners() {
         if (!isMouse) {
             touchTimer = setTimeout(() => {
                 isLongPress = true;
+
+                const phraseElement = target?.closest?.('#frontDisplay, #backDisplay');
+                if (phraseElement) {
+                    selectAndCopyPhrase(phraseElement);
+                }
             }, TOUCH_LONG_PRESS_DURATION_MS);
         }
     };
@@ -1163,7 +1232,7 @@ function setupCardListeners() {
     // --- Mouse Listeners (Desktop) ---
     ui.cardInner.addEventListener('mousedown', e => {
         if (e.button !== 0) return; // Only accept left-clicks
-        handleStart(e.clientX, e.clientY, true);
+        handleStart(e.clientX, e.clientY, e.target, true);
     });
 
     ui.cardInner.addEventListener('mouseup', e => {
@@ -1173,7 +1242,7 @@ function setupCardListeners() {
 
     // --- Touch Listeners (Pixel) ---
     ui.cardInner.addEventListener('touchstart', e => {
-        handleStart(e.touches[0].clientX, e.touches[0].clientY, false);
+        handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target, false);
     }, { passive: true });
 
     ui.cardInner.addEventListener('touchend', e => {
