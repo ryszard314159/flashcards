@@ -36,15 +36,42 @@ function init() {
         .then(reg => {
             console.log('app: SW Registered successfully');
 
-            reg.update().catch((error) => {
-                console.warn('app: SW update check failed:', error);
+            const markUpdateAvailable = () => {
+                if (ui.versionTag) {
+                    ui.versionTag.classList.add('is-update-available');
+                }
+            };
+
+            const checkWaitingWorker = () => {
+                if (reg.waiting) {
+                    console.log('app: Found a waiting worker.');
+                    markUpdateAvailable();
+                }
+            };
+
+            const watchInstallingWorker = (worker) => {
+                if (!worker) {
+                    return;
+                }
+                worker.addEventListener('statechange', () => {
+                    if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                        console.log('app: New content is available.');
+                        markUpdateAvailable();
+                    }
+                });
+            };
+
+            // Attach listeners before forcing update checks to avoid missing events.
+            reg.addEventListener('updatefound', () => {
+                watchInstallingWorker(reg.installing);
             });
 
-            // 1. Pre-check: Does a worker exist already?
-            if (reg.waiting) {
-                console.log('app: Found a waiting worker on load!');
-                if (ui.versionTag) ui.versionTag.classList.add('is-update-available');
+            if (reg.installing) {
+                watchInstallingWorker(reg.installing);
             }
+
+            // 1. Pre-check: Does a worker exist already?
+            checkWaitingWorker();
 
             // 2. Click Handler on versionTag
             if (ui.versionTag) {
@@ -72,6 +99,8 @@ function init() {
                     } else {
                         reg.update().catch((error) => {
                             console.warn('app: SW update retry failed:', error);
+                        }).finally(() => {
+                            checkWaitingWorker();
                         });
                     }
                 };
@@ -86,20 +115,31 @@ function init() {
                 }
             };
 
-            // 3. Update Found Listener
-            reg.onupdatefound = () => {
-                const installingWorker = reg.installing;
-                installingWorker.onstatechange = () => {
-                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        console.log('app: New content is available.');
-                        if (ui.versionTag) {
-                            ui.versionTag.classList.add('is-update-available');
-                        } else {
-                            console.log('app: versionTag element not found in UI.');
-                        }
-                    }
-                };
-            };
+            // Trigger initial check and re-check when app returns to foreground.
+            reg.update().catch((error) => {
+                console.warn('app: SW update check failed:', error);
+            }).finally(() => {
+                checkWaitingWorker();
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'visible') {
+                    return;
+                }
+                reg.update().catch(() => {
+                    // Noisy logs on mobile are not helpful for transient network issues.
+                }).finally(() => {
+                    checkWaitingWorker();
+                });
+            });
+
+            window.addEventListener('focus', () => {
+                reg.update().catch(() => {
+                    // Ignore transient failures; next visibility/focus will retry.
+                }).finally(() => {
+                    checkWaitingWorker();
+                });
+            });
         })
         .catch(err => console.error('app: SW Registration Failed:', err));
     }
