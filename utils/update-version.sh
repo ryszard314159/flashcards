@@ -1,14 +1,19 @@
 #!/bin/bash
 
-# 1. Get current date in YYYY-MM-DD format
-NEW_VERSION=$(date +%Y-%m-%d.%H%M)
+set -euo pipefail
 
-# 2. Update src/config.js
-# Looks for VERSION: "old-version", and replaces it with the new date
-sed -i "s/VERSION: \".*\"/VERSION: \"$NEW_VERSION\"/" src/config.js
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 
-# 3. Update sw.js
-# Looks for // VERSION: old-version and replaces it with the new date
-sed -i "s|// VERSION: .*|// VERSION: $NEW_VERSION|" sw.js
+cd "$REPO_ROOT"
+echo REPO_ROOT=$REPO_ROOT
 
-echo "Updated version to $NEW_VERSION in both src/config.js and sw.js"
+VERSION=$(date +%Y-%m-%d.%H%M)
+
+# Update src/config.js
+sed -i "s/VERSION: \".*\"/VERSION: \"$VERSION\"/" src/config.js
+
+# update sw.js: const VERSION = "YYYY-MM-DD.HHMM"
+sed -i "s|const VERSION = .*|const VERSION = \"$VERSION\";|" sw.js
+
+echo "Updated version to $VERSION in src/config.js and sw.js"

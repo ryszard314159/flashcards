@@ -30,10 +30,15 @@ function init() {
     // 1. REGISTER SERVICE WORKER (Module Type)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js', {
-            type: 'module'
+            type: 'module',
+            updateViaCache: 'none'
         })
         .then(reg => {
             console.log('app: SW Registered successfully');
+
+            reg.update().catch((error) => {
+                console.warn('app: SW update check failed:', error);
+            });
 
             // 1. Pre-check: Does a worker exist already?
             if (reg.waiting) {
@@ -64,6 +69,10 @@ function init() {
                                 window.location.reload();
                             }
                         }, 2000);
+                    } else {
+                        reg.update().catch((error) => {
+                            console.warn('app: SW update retry failed:', error);
+                        });
                     }
                 };
             }

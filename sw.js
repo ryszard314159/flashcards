@@ -1,10 +1,16 @@
 //
 // sw.js - Service Worker for Flashcards App
 //
-// VERSION: 2026-03-12.0930
-import { CONFIG } from './src/config.js';
+// VERSION to be updated by utils/update-version.sh to "YYYY-MM-DD.HHMM"
+const VERSION = "2026-03-12.1054";
 
-const CACHE_NAME = CONFIG.VERSION; 
+const CACHE_PREFIX = 'flashcards-';
+
+if (!/^\d{4}-\d{2}-\d{2}\.\d{4}$/.test(VERSION)) {
+  throw new Error(`sw: invalid VERSION '${VERSION}'`);
+}
+
+const CACHE_NAME = `${CACHE_PREFIX}${VERSION}`;
 
 const ASSETS = [
   './',
@@ -47,7 +53,9 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        keys
+          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== ACTIVE_CACHE_NAME)
+          .map((key) => caches.delete(key))
       );
     }).then(() => self.clients.claim())
   );
@@ -104,7 +112,7 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 }
                 const responseToCache = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
+                caches.open(ACTIVE_CACHE_NAME).then((cache) => {
                     cache.put(event.request, responseToCache);
                 });
                 return response;
