@@ -24,13 +24,24 @@
 
 /* Prevent the bounce/scroll on mobile completely */
 html, body {
-    height: 100dvh;
-    width: 100vw;
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    width: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     font-family: -apple-system, system-ui, sans-serif;
     background-color: var(--color-ink);
+}
+
+html {
+    min-height: -webkit-fill-available;
+}
+
+body {
+    min-height: -webkit-fill-available;
 }
 
 /* --- 2. APP HEADER (Fixed Height) --- */
@@ -59,6 +70,7 @@ html, body {
 /* --- 3. MIDDLE SECTION (Navigation & Card) --- */
 .card-view {
     flex-grow: 1; /* Takes exactly what's left between header and footer */
+    min-height: 0;
     display: flex;
     flex-direction: row;
     overflow: hidden;
@@ -182,10 +194,12 @@ html, body {
 /* --- 5. APP FOOTER (Fixed Height) --- */
 .app-footer {
     height: 3rem;
+    min-height: 3rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom, 0);
     background-color: var(--bg-footer);
     color: white;
     font-size: 0.8rem;

@@ -12,6 +12,7 @@ import { pickWeightedCard, generateSessionDeck, calculateProbabilities, filterCa
 
 let ui = {};
 let isRefreshing = false; // Global flag to prevent double-reload
+let hasPendingUpdate = false;
 let nextZoneLongPressTimer = null;
 let nextZoneLongPressTriggered = false;
 const NEXT_ZONE_LONG_PRESS_MS = 500;
@@ -21,6 +22,32 @@ const NEXT_ZONE_DEBUG_ALERT = false;
 // Speech Synthesis Cache
 let availableVoices = [];
 let voicesLoaded = false;
+
+function markUpdateAvailable() {
+    hasPendingUpdate = true;
+    if (ui.versionTag) {
+        ui.versionTag.classList.add('is-update-available');
+    }
+}
+
+async function fetchLatestVersionFromNetwork() {
+    const response = await fetch(`./src/config.js?version-check=${Date.now()}`, {
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        throw new Error(`Version check failed with status ${response.status}`);
+    }
+
+    const source = await response.text();
+    const match = source.match(/VERSION:\s*"(\d{4}-\d{2}-\d{2}\.\d{4})"/);
+
+    if (!match) {
+        throw new Error('Version check could not parse VERSION from config.js');
+    }
+
+    return match[1];
+}
 
 function init() {
 
@@ -35,12 +62,6 @@ function init() {
         })
         .then(reg => {
             console.log('app: SW Registered successfully');
-
-            const markUpdateAvailable = () => {
-                if (ui.versionTag) {
-                    ui.versionTag.classList.add('is-update-available');
-                }
-            };
 
             const checkWaitingWorker = () => {
                 if (reg.waiting) {
@@ -140,6 +161,30 @@ function init() {
                     checkWaitingWorker();
                 });
             });
+
+            const checkRemoteVersion = () => {
+                fetchLatestVersionFromNetwork().then((latestVersion) => {
+                    if (latestVersion > CONFIG.VERSION) {
+                        console.log('app: Remote version is newer:', latestVersion);
+                        markUpdateAvailable();
+                        reg.update().catch(() => {
+                            // Ignore transient update failures; the badge is enough to inform the user.
+                        });
+                    }
+                }).catch((error) => {
+                    console.warn('app: Remote version check failed:', error);
+                });
+            };
+
+            checkRemoteVersion();
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    checkRemoteVersion();
+                }
+            });
+
+            window.addEventListener('focus', checkRemoteVersion);
         })
         .catch(err => console.error('app: SW Registration Failed:', err));
     }
@@ -192,6 +237,9 @@ function init() {
 
     assertRequiredUI();
     ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
+    if (hasPendingUpdate) {
+        ui.versionTag.classList.add('is-update-available');
+    }
 
     // 2. Debugging Log
     const missing = Object.keys(ui).filter(key => ui[key] === null);
