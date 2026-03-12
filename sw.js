@@ -2,9 +2,10 @@
 // sw.js - Service Worker for Flashcards App
 //
 // VERSION to be updated by utils/update-version.sh to "YYYY-MM-DD.HHMM"
-const VERSION = "2026-03-12.1113";
+const VERSION = "2026-03-12.1123";
 
 const CACHE_PREFIX = 'flashcards-';
+const LEGACY_VERSION_CACHE_RE = /^\d{4}-\d{2}-\d{2}\.\d{4}$/;
 
 if (!/^\d{4}-\d{2}-\d{2}\.\d{4}$/.test(VERSION)) {
   throw new Error(`sw: invalid VERSION '${VERSION}'`);
@@ -54,7 +55,13 @@ self.addEventListener('activate', (e) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys
-          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== ACTIVE_CACHE_NAME)
+          .filter((key) => {
+            if (key === CACHE_NAME) {
+              return false;
+            }
+            // Remove both current-style and legacy caches.
+            return key.startsWith(CACHE_PREFIX) || LEGACY_VERSION_CACHE_RE.test(key);
+          })
           .map((key) => caches.delete(key))
       );
     }).then(() => self.clients.claim())
@@ -89,19 +96,28 @@ self.addEventListener('fetch', (event) => {
     // with a 5-second timeout to prevent hanging on slow networks
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            Promise.race([
-                fetch(event.request),
-                new Promise(resolve => 
-                    setTimeout(() => resolve(caches.match(event.request)), 5000)
-                )
-            ]).catch(() => caches.match(event.request))
+      Promise.race([
+        fetch(event.request),
+        new Promise(resolve =>
+          setTimeout(() => {
+            caches.open(CACHE_NAME)
+              .then((cache) => cache.match(event.request))
+              .then((cached) => resolve(cached || caches.match('./index.html')))
+              .catch(() => resolve(caches.match('./index.html')));
+          }, 5000)
+        )
+      ]).catch(() => {
+        return caches.open(CACHE_NAME)
+          .then((cache) => cache.match(event.request))
+          .then((cached) => cached || caches.match('./index.html'));
+      })
         );
         return;
     }
     // For everything else (JS, CSS, images), use cache-first
     // This ensures users see and interact with the version tag before new code loads
     event.respondWith(
-        caches.match(event.request).then((response) => {
+      caches.open(CACHE_NAME).then((cache) => cache.match(event.request)).then((response) => {
             if (response) {
                 return response;
             }
@@ -112,7 +128,7 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 }
                 const responseToCache = response.clone();
-                caches.open(ACTIVE_CACHE_NAME).then((cache) => {
+                caches.open(CACHE_NAME).then((cache) => {
                     cache.put(event.request, responseToCache);
                 });
                 return response;
