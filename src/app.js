@@ -166,7 +166,6 @@ function init() {
     // 1. REGISTER SERVICE WORKER (Module Type)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js', {
-            type: 'module',
             updateViaCache: 'none'
         })
         .then(reg => {
