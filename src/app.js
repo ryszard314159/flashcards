@@ -260,6 +260,8 @@ function init() {
     ui = {
         backDisplay: document.getElementById('backDisplay'),
         backLabel: document.getElementById('backLabel'),
+        autoPlayFrontOnFlip: document.getElementById('autoPlayFrontOnFlip'),
+        autoPlayBackOnFlip: document.getElementById('autoPlayBackOnFlip'),
         cardInner: document.getElementById('cardInner'),
         categoryList: document.getElementById('categoryList'),
         closeDeck: document.getElementById('closeDeck'),
@@ -369,6 +371,8 @@ function validateConfiguration() {
 
 function assertRequiredUI() {
     const required = [
+        'autoPlayFrontOnFlip',
+        'autoPlayBackOnFlip',
         'cardInner',
         'categoryList',
         'closeDeck',
@@ -1143,6 +1147,10 @@ function updateTemperature(newVal) {
 function resetSessionSettings() {
     updateTemperature(TEMPERATURE.default);
     updateSpeechRate(SPEECH_RATE.default);
+    state.settings.autoPlayFrontOnFlip = false;
+    state.settings.autoPlayBackOnFlip = false;
+    if (ui.autoPlayFrontOnFlip) ui.autoPlayFrontOnFlip.checked = false;
+    if (ui.autoPlayBackOnFlip) ui.autoPlayBackOnFlip.checked = false;
     updateSessionSize(SESSION_SIZE.default);
     console.log(`resetSessionSettings: default values restored.`);
 }
@@ -1227,6 +1235,13 @@ function setupCardListeners() {
         state.isFlipped = !ui.cardInner.classList.contains('is-flipped');
         ui.cardInner.classList.toggle('is-flipped', state.isFlipped);
         console.log(`[DEBUG] Executing Flip from: ${isMouse ? 'Mouse' : 'Touch'}`);
+
+        const shouldAutoPlay = state.isFlipped
+            ? Boolean(state.settings.autoPlayBackOnFlip)
+            : Boolean(state.settings.autoPlayFrontOnFlip);
+        if (shouldAutoPlay) {
+            playAudio();
+        }
     };
 
     // --- Mouse Listeners (Desktop) ---
@@ -1456,6 +1471,8 @@ function syncSettingsToUI() {
     // }
     if (ui.speechRateInput) ui.speechRateInput.value = state.settings.speechRate;
     if (ui.modeSelect) ui.modeSelect.value = state.settings.selectionMode;
+    if (ui.autoPlayFrontOnFlip) ui.autoPlayFrontOnFlip.checked = Boolean(state.settings.autoPlayFrontOnFlip);
+    if (ui.autoPlayBackOnFlip) ui.autoPlayBackOnFlip.checked = Boolean(state.settings.autoPlayBackOnFlip);
     updateNextZoneModeIcon();
 }
 
@@ -1464,6 +1481,8 @@ function updateStateFromUI() {
     state.settings.temperature = parseFloat(ui.tempInput.value);
     state.settings.speechRate = parseFloat(ui.speechRateInput.value);
     state.settings.selectionMode = ui.modeSelect?.value || 'weighted';
+    state.settings.autoPlayFrontOnFlip = Boolean(ui.autoPlayFrontOnFlip.checked);
+    state.settings.autoPlayBackOnFlip = Boolean(ui.autoPlayBackOnFlip.checked);
 }
 
 function refreshCategoryUI() {

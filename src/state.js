@@ -29,6 +29,8 @@ export const state = {
         sessionSize: SESSION_SIZE.default,
         temperature: TEMPERATURE.default,
         speechRate: SPEECH_RATE.default,
-        selectionMode: SELECTION_MODE.default
+        selectionMode: SELECTION_MODE.default,
+        autoPlayFrontOnFlip: false,
+        autoPlayBackOnFlip: false,
     }
 };
