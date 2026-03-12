@@ -53,15 +53,17 @@ function init() {
                     e.stopPropagation();
                     const worker = reg.waiting || reg.installing;
                     if (worker) {
+                        console.log('app: Sending SKIP_WAITING to Service Worker...');
                         worker.postMessage({ type: 'SKIP_WAITING' });
-                        // Fallback: if oncontrollerchange doesn't fire, reload after a short delay
+                        // Fallback: if oncontrollerchange doesn't fire, reload after a longer delay
+                        // to give the new Service Worker time to cache all assets
                         setTimeout(() => {
                             if (!isRefreshing) {
                                 isRefreshing = true;
-                                console.log('app: Forcing reload as controllerchange backup...');
+                                console.log('app: Forcing reload as controllerchange backup (timeout)...');
                                 window.location.reload();
                             }
-                        }, 500);
+                        }, 2000);
                     }
                 };
             }

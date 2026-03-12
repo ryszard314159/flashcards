@@ -1,7 +1,7 @@
 //
 // sw.js - Service Worker for Flashcards App
 //
-// VERSION: 2026-03-12.0854
+// VERSION: 2026-03-12.0917
 import { CONFIG } from './src/config.js';
 
 const CACHE_NAME = CONFIG.VERSION; 
@@ -15,6 +15,7 @@ const ASSETS = [
   './src/config.js',
   './src/io.js',
   './src/state.js',
+  './src/srs.js',
   './manifest.json',
   './icons/favicon.svg',
 ];
@@ -77,8 +78,16 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (event) => {
     // If the request is for the HTML file, go to the network first
+    // with a 5-second timeout to prevent hanging on slow networks
     if (event.request.mode === 'navigate') {
-        event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+        event.respondWith(
+            Promise.race([
+                fetch(event.request),
+                new Promise(resolve => 
+                    setTimeout(() => resolve(caches.match(event.request)), 5000)
+                )
+            ]).catch(() => caches.match(event.request))
+        );
         return;
     }
     // For everything else (JS, CSS, images), use cache-first
