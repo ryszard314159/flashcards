@@ -27,6 +27,7 @@ const IS_LOCAL_DEVELOPMENT = ['localhost', '127.0.0.1', '[::1]'].includes(window
 // Speech Synthesis Cache
 let availableVoices = [];
 let voicesLoaded = false;
+function _resetVoiceCache() { availableVoices = []; voicesLoaded = false; }
 let voiceRefreshTimer = null;
 const AUTO_VOICE_VALUE = '';
 const AUTO_VOICE_LABEL = 'Auto-detect / deck directive';
@@ -53,6 +54,11 @@ function normalizeVoiceLocale(locale) {
             if (index === 0) {
                 return part.toLowerCase();
             }
+            // Script subtags are 4 letters: title-case (e.g. Hans, Latn)
+            if (part.length === 4 && /^[A-Za-z]+$/.test(part)) {
+                return part[0].toUpperCase() + part.slice(1).toLowerCase();
+            }
+            // Region (2 letters) or extlang/variant (2-3 alphanumeric): uppercase
             if (part.length === 2 || part.length === 3) {
                 return part.toUpperCase();
             }
@@ -724,6 +730,11 @@ function parseVoiceSpec(voiceSpec) {
 /**
  * Find a voice by name and language, or by exact name match
  * Priority: Exact name match > Language match > Fallback
+ *
+ * NOTE: Voice names are platform-specific (e.g. "Google US English" on desktop
+ * Chrome vs "English United States" on Pixel Chrome). Cross-device portability
+ * of saved voice settings is best-effort: when an exact name match fails, the
+ * fallback chain matches by language to preserve correct TTS locale.
  */
 function selectVoiceBySpec(voiceSpec) {
     if (!window.speechSynthesis || !voiceSpec) return null;
@@ -1861,9 +1872,15 @@ export {
     fetchLatestVersionFromNetwork,
     hasNewerRemoteVersion,
     activatePendingUpdateFromVersionTag,
+    normalizeVoiceLocale,
     parseVoiceSpec,
     normalizeVoiceSpec,
+    buildVoiceSpecLabel,
+    filterVoiceSpecs,
+    selectVoiceBySpec,
+    selectBestVoiceForLanguage,
     resolveVoiceSpecForSide,
+    _resetVoiceCache,
 };
 
 function adjustSpeechRate(delta) {

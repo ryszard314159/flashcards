@@ -2,7 +2,7 @@
 // sw.js - Service Worker for Flashcards App
 //
 // VERSION to be updated by utils/update-version.sh to "YYYY-MM-DD.HHMM"
-const VERSION = "2026-03-13.1749";
+const VERSION = "2026-03-13.1840";
 
 const CACHE_PREFIX = 'flashcards-';
 const LEGACY_VERSION_CACHE_RE = /^\d{4}-\d{2}-\d{2}\.\d{4}$/;
@@ -92,68 +92,72 @@ self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
   const isCoreModule = requestUrl.pathname.endsWith('/src/app.js') || requestUrl.pathname.endsWith('/src/config.js');
 
-    // If the request is for the HTML file, go to the network first
-    // with a 5-second timeout to prevent hanging on slow networks
-    if (event.request.mode === 'navigate') {
-        event.respondWith(
+  // Navigation requests: network-first with 5-second timeout
+  if (event.request.mode === 'navigate') {
+    let timeoutId;
+    event.respondWith(
       Promise.race([
-        fetch(event.request),
-        new Promise(resolve =>
-          setTimeout(() => {
+        fetch(event.request).then((response) => {
+          clearTimeout(timeoutId);
+          return response;
+        }),
+        new Promise((resolve) => {
+          timeoutId = setTimeout(() => {
             caches.open(CACHE_NAME)
               .then((cache) => cache.match(event.request))
               .then((cached) => resolve(cached || caches.match('./index.html')))
               .catch(() => resolve(caches.match('./index.html')));
-          }, 5000)
-        )
+          }, 5000);
+        })
       ]).catch(() => {
+        clearTimeout(timeoutId);
         return caches.open(CACHE_NAME)
           .then((cache) => cache.match(event.request))
           .then((cached) => cached || caches.match('./index.html'));
       })
-        );
-        return;
-    }
-
-      if (isCoreModule) {
-        event.respondWith(
-          fetch(event.request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200 && networkResponse.type !== 'error') {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            }
-            return networkResponse;
-          }).catch(() => {
-            return caches.open(CACHE_NAME)
-              .then((cache) => cache.match(event.request));
-          })
-        );
-        return;
-      }
-
-    // For everything else (JS, CSS, images), use cache-first
-    // This ensures users see and interact with the version tag before new code loads
-    event.respondWith(
-      caches.open(CACHE_NAME).then((cache) => cache.match(event.request)).then((response) => {
-            if (response) {
-                return response;
-            }
-            // Not in cache, fetch from network and cache it
-            return fetch(event.request).then((response) => {
-                // Only cache successful responses
-                if (!response || response.status !== 200 || response.type === 'error') {
-                    return response;
-                }
-                const responseToCache = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
-                });
-                return response;
-            });
-        })
     );
+    return;
+  }
+
+  // Core bootstrap modules (app.js, config.js): network-first with cache fallback
+  if (isCoreModule) {
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type !== 'error') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      }).catch(() => {
+        return caches.open(CACHE_NAME)
+          .then((cache) => cache.match(event.request));
+      })
+    );
+    return;
+  }
+
+  // Everything else (JS, CSS, images): cache-first
+  event.respondWith(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.match(event.request))
+      .then((response) => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'error') {
+            return networkResponse;
+          }
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return networkResponse;
+        });
+      })
+  );
 });
 
 // MESSAGE: Trigger the update only when the user clicks the version tag
