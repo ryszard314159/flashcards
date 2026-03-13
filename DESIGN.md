@@ -1,3 +1,7 @@
+Do thorough code review.
+Focus on bugs, regressions, edge cases, and missing tests.
+Findings first, ordered by severity. Keep summary brief.
+
 # Design Document: Immersive Flashcards PWA
 
 ## 1. Project Vision

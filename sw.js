@@ -2,7 +2,7 @@
 // sw.js - Service Worker for Flashcards App
 //
 // VERSION to be updated by utils/update-version.sh to "YYYY-MM-DD.HHMM"
-const VERSION = "2026-03-13.1724";
+const VERSION = "2026-03-13.1749";
 
 const CACHE_PREFIX = 'flashcards-';
 const LEGACY_VERSION_CACHE_RE = /^\d{4}-\d{2}-\d{2}\.\d{4}$/;
@@ -127,8 +127,7 @@ self.addEventListener('fetch', (event) => {
             return networkResponse;
           }).catch(() => {
             return caches.open(CACHE_NAME)
-              .then((cache) => cache.match(event.request))
-              .then((cached) => cached || fetch(event.request));
+              .then((cache) => cache.match(event.request));
           })
         );
         return;
