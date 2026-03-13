@@ -163,7 +163,7 @@ function init() {
     // Load voices for speech synthesis
     loadAvailableVoices();
 
-    // 1. REGISTER SERVICE WORKER (Module Type)
+    // 1. Register service worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js', {
             updateViaCache: 'none'
