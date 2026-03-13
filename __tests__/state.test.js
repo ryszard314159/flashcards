@@ -138,8 +138,8 @@ describe('state.js - Application State', () => {
       expect(state.settings).not.toBeNull();
     });
 
-    test('should have activeCategories array', () => {
-      expect(Array.isArray(state.activeCategories)).toBe(true);
+    test('should have activeCategories array in settings', () => {
+      expect(Array.isArray(state.settings.activeCategories)).toBe(true);
     });
 
     test('should have currentCardIndex', () => {

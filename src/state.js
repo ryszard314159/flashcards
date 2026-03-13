@@ -13,7 +13,6 @@ export const state = {
     currentCardIndex: 0,
     // Master source of cards (Help & Usage categories)
     categories: [],      // e.g., ["Help", "Usage", "Biology"]
-    activeCategories: [], // e.g., ["Biology"]
     masterDeck: [
         // Category: Help
         { frontLabel: "Help", backLabel: "Navigation", frontText: "How do I navigate?", backText: "Tap the LEFT edge for Previous, and the RIGHT edge for Next.", score: 1.0 },
@@ -34,5 +33,6 @@ export const state = {
         autoPlayBackOnFlip: false,
         frontVoice: '',
         backVoice: '',
+        activeCategories: [],
     }
 };

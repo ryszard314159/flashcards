@@ -1035,10 +1035,10 @@ function setupEventListeners() {
 
     ui.closeDeck.addEventListener('click', () => {
         const checkboxes = ui.categoryList.querySelectorAll('input:checked');
-        state.activeCategories = Array.from(checkboxes).map(cb => cb.value);
+        state.settings.activeCategories = Array.from(checkboxes).map(cb => cb.value);
 
         // Safety: if nothing is selected, prevent closing and log warning
-        if (state.activeCategories.length === 0) {
+        if (state.settings.activeCategories.length === 0) {
             console.warn("Category selection: At least one category must be selected.");
             return;
         }
@@ -1654,12 +1654,12 @@ function applySessionLogic() {
     }
 
     // Ensure we have active categories; if not, default to all
-    if (!state.activeCategories || state.activeCategories.length === 0) {
-        state.activeCategories = [...new Set(state.masterDeck.map(c => c.frontLabel))];
+    if (!state.settings.activeCategories || state.settings.activeCategories.length === 0) {
+        state.settings.activeCategories = [...new Set(state.masterDeck.map(c => c.frontLabel))];
     }
 
     let filteredCards = state.masterDeck.filter(card =>
-        state.activeCategories.includes(card.frontLabel)
+        state.settings.activeCategories.includes(card.frontLabel)
     );
 
     if (filteredCards.length === 0) filteredCards = [...state.masterDeck];
@@ -1734,13 +1734,13 @@ function updateStateFromUI() {
 
 function refreshCategoryUI() {
     const allCategories = [...new Set(state.masterDeck.map(card => card.frontLabel))];
-    if (state.activeCategories.length === 0) {
-        state.activeCategories = [...allCategories];
+    if (state.settings.activeCategories.length === 0) {
+        state.settings.activeCategories = [...allCategories];
     }
 
     ui.categoryList.innerHTML = '';
     allCategories.forEach(cat => {
-        const isChecked = state.activeCategories.includes(cat);
+        const isChecked = state.settings.activeCategories.includes(cat);
         const item = document.createElement('div');
         item.className = 'category-item';
 

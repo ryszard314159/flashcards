@@ -165,6 +165,39 @@ hola|hello|extra|more`;
       expect(result[0].frontText).toBe('hola');
       expect(result[0].backText).toBe('hello');
     });
+
+    test('should parse score from third pipe column', () => {
+      const deckText = `* Spanish | English
+hola | hello | 3
+gato | cat | -2
+perro | dog`;
+
+      const result = processDeckText(deckText);
+
+      expect(result[0].score).toBe(3);
+      expect(result[1].score).toBe(-2);
+      expect(result[2].score).toBe(0); // no score column → default 0
+    });
+
+    test('should default to score 0 for invalid score values', () => {
+      const deckText = `* Spanish | English
+hola | hello | abc
+gato | cat |  `;
+
+      const result = processDeckText(deckText);
+
+      expect(result[0].score).toBe(0);
+      expect(result[1].score).toBe(0);
+    });
+
+    test('should preserve fractional scores', () => {
+      const deckText = `* Spanish | English
+hola | hello | 2.5`;
+
+      const result = processDeckText(deckText);
+
+      expect(result[0].score).toBe(2.5);
+    });
   });
 
   // ============================================================================

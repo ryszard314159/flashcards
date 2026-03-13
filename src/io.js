@@ -130,9 +130,10 @@ export function processDeckText(rawText) {
             return;
         }
 
-        // Parse card content (e.g., frontText | backText)
+        // Parse card content (e.g., frontText | backText | [score])
         const parts = normalized.split('|');
         if (parts.length >= 2) {
+            const parsedScore = parts.length >= 3 ? parseFloat(parts[2].trim()) : NaN;
             newCards.push({
                 frontLabel: currentFrontLabel,
                 backLabel: currentBackLabel,
@@ -140,8 +141,8 @@ export function processDeckText(rawText) {
                 backText: parts[1].trim(),
                 frontVoice: deckFrontVoice,
                 backVoice: deckBackVoice,
-                id: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                score: 0
+                id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+                score: Number.isFinite(parsedScore) ? parsedScore : 0
             });
         }
     });
@@ -172,7 +173,7 @@ export async function deckReader(file) {
                 console.log('[DeckReader] first non-empty line:', JSON.stringify(firstNonEmpty));
 
                 const cards = processDeckText(rawText);
-                if (!cards.length) reject("Empty or invalid deck file.");
+                if (!cards.length) return reject("Empty or invalid deck file.");
                 resolve(cards);
             } catch (e) { reject(e); }
         };
