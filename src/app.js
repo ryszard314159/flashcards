@@ -33,6 +33,52 @@ const AUTO_VOICE_LABEL = 'Auto-detect / deck directive';
 const VOICE_REFRESH_INTERVAL_MS = 400;
 const MAX_VOICE_REFRESH_ATTEMPTS = 12;
 
+function normalizeVoiceLocale(locale) {
+    if (typeof locale !== 'string') {
+        return '';
+    }
+
+    const trimmed = locale.trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    const parts = trimmed.replace(/_/g, '-').split('-').filter(Boolean);
+    if (parts.length === 0) {
+        return '';
+    }
+
+    return parts
+        .map((part, index) => {
+            if (index === 0) {
+                return part.toLowerCase();
+            }
+            if (part.length === 2 || part.length === 3) {
+                return part.toUpperCase();
+            }
+            return part;
+        })
+        .join('-');
+}
+
+function normalizeVoiceSpec(voiceSpec) {
+    if (typeof voiceSpec !== 'string') {
+        return '';
+    }
+
+    const trimmed = voiceSpec.trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    const parsed = parseVoiceSpec(trimmed);
+    if (!parsed) {
+        return trimmed;
+    }
+
+    return `${parsed.name} (${parsed.lang})`;
+}
+
 function markUpdateAvailable() {
     hasPendingUpdate = true;
     if (ui.versionTag) {
@@ -355,6 +401,8 @@ function init() {
     }
 
     state.settings = { ...state.settings, ...load(KEYS.SETTINGS) };
+    state.settings.frontVoice = normalizeVoiceSpec(state.settings.frontVoice) || AUTO_VOICE_VALUE;
+    state.settings.backVoice = normalizeVoiceSpec(state.settings.backVoice) || AUTO_VOICE_VALUE;
     // state.masterDeck = { ...state.masterDeck, ...load(KEYS.DECK) };
     // state.masterDeck = load(KEYS.DECK) || state.masterDeck;
     const savedDeck = load(KEYS.DECK);
@@ -518,7 +566,7 @@ function getVoiceSettingKey(isBack) {
 }
 
 function buildVoiceSpecLabel(voice) {
-    return `${voice.name} (${voice.lang})`;
+    return `${voice.name} (${normalizeVoiceLocale(voice.lang)})`;
 }
 
 function getVoiceSpecCatalog() {
@@ -538,13 +586,13 @@ function getVoiceSpecCatalog() {
 }
 
 function filterVoiceSpecs(specs, filterText = '') {
-    const normalizedFilter = (filterText || '').trim().toLowerCase();
+    const normalizedFilter = normalizeVoiceSpec(filterText).toLowerCase();
 
     if (!normalizedFilter) {
         return specs;
     }
 
-    return specs.filter(spec => spec.toLowerCase().includes(normalizedFilter));
+    return specs.filter((spec) => normalizeVoiceSpec(spec).toLowerCase().includes(normalizedFilter));
 }
 
 function renderVoiceOptions(selectElement, filterText, selectedValue = AUTO_VOICE_VALUE) {
@@ -555,9 +603,10 @@ function renderVoiceOptions(selectElement, filterText, selectedValue = AUTO_VOIC
     const allSpecs = getVoiceSpecCatalog();
     const filteredSpecs = filterVoiceSpecs(allSpecs, filterText);
     const specsToRender = [...filteredSpecs];
+    const normalizedSelectedValue = normalizeVoiceSpec(selectedValue);
 
-    if (selectedValue && !specsToRender.includes(selectedValue)) {
-        specsToRender.unshift(selectedValue);
+    if (normalizedSelectedValue && !specsToRender.includes(normalizedSelectedValue)) {
+        specsToRender.unshift(normalizedSelectedValue);
     }
 
     selectElement.innerHTML = '';
@@ -590,7 +639,7 @@ function renderVoiceOptions(selectElement, filterText, selectedValue = AUTO_VOIC
         });
     }
 
-    selectElement.value = selectedValue || AUTO_VOICE_VALUE;
+    selectElement.value = normalizedSelectedValue || AUTO_VOICE_VALUE;
 }
 
 function syncVoiceSelectors() {
@@ -603,7 +652,7 @@ function syncVoiceSelectors() {
 }
 
 function updateVoiceSetting(isBack, value) {
-    state.settings[getVoiceSettingKey(isBack)] = value || AUTO_VOICE_VALUE;
+    state.settings[getVoiceSettingKey(isBack)] = normalizeVoiceSpec(value) || AUTO_VOICE_VALUE;
 }
 
 /**
@@ -663,12 +712,12 @@ function detectLanguageFromCard(card, { isBack = false, textOverride = '' } = {}
 function parseVoiceSpec(voiceSpec) {
     if (!voiceSpec) return null;
 
-    const match = voiceSpec.match(/^(.+?)\s*\(([a-z]{2}-[A-Z]{2})\)$/);
+    const match = voiceSpec.match(/^(.+?)\s*\(([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*)\)$/);
     if (!match) return null;
 
     return {
         name: match[1].trim(),
-        lang: match[2]
+        lang: normalizeVoiceLocale(match[2])
     };
 }
 
@@ -694,7 +743,7 @@ function selectVoiceBySpec(voiceSpec) {
     const { name, lang } = spec;
 
     // Try to find exact name match first
-    let exactMatch = availableVoices.find(v => v.name === name && v.lang === lang);
+    let exactMatch = availableVoices.find(v => v.name === name && normalizeVoiceLocale(v.lang) === lang);
     if (exactMatch) {
         if (DEBUG) console.log(`[Speech] Found exact voice: ${name} (${lang})`);
         return exactMatch;
@@ -708,7 +757,7 @@ function selectVoiceBySpec(voiceSpec) {
     }
 
     // Try language match with the requested lang
-    let langMatch = availableVoices.find(v => v.lang === lang);
+    let langMatch = availableVoices.find(v => normalizeVoiceLocale(v.lang) === lang);
     if (langMatch) {
         if (DEBUG) console.log(`[Speech] Found voice by language: ${langMatch.name} (${lang})`);
         return langMatch;
@@ -716,7 +765,10 @@ function selectVoiceBySpec(voiceSpec) {
 
     // Try same base language (e.g. es-MX when es-ES was requested)
     const baseLang = lang.split('-')[0];
-    const sameBaseLang = availableVoices.find(v => v.lang && v.lang.startsWith(baseLang + '-'));
+    const sameBaseLang = availableVoices.find((v) => {
+        const normalizedLang = normalizeVoiceLocale(v.lang);
+        return normalizedLang && normalizedLang.startsWith(baseLang + '-');
+    });
     if (sameBaseLang) {
         if (DEBUG) console.log(`[Speech] Found voice by base language: ${sameBaseLang.name} (${sameBaseLang.lang})`);
         return sameBaseLang;
@@ -739,14 +791,15 @@ function selectBestVoiceForLanguage(langCode) {
         availableVoices = window.speechSynthesis.getVoices();
     }
 
-    const baseLang = langCode.split('-')[0]; // Extract base language from locale code
+    const normalizedLangCode = normalizeVoiceLocale(langCode);
+    const baseLang = normalizedLangCode.split('-')[0]; // Extract base language from locale code
 
     // Priority: Exact match > Same language > Fallback
-    let exactMatch = availableVoices.find(v => v.lang === langCode);
+    let exactMatch = availableVoices.find(v => normalizeVoiceLocale(v.lang) === normalizedLangCode);
     if (exactMatch) return exactMatch;
 
     // Find voices for the same language (different region)
-    let sameLanguageVoices = availableVoices.filter(v => v.lang.startsWith(baseLang + '-'));
+    let sameLanguageVoices = availableVoices.filter((v) => normalizeVoiceLocale(v.lang).startsWith(baseLang + '-'));
 
     // Prioritize: Google voices > higher quality > first available
     if (sameLanguageVoices.length > 0) {
@@ -767,7 +820,7 @@ function selectBestVoiceForLanguage(langCode) {
 
 function resolveVoiceSpecForSide(card, isBack) {
     const settingsVoice = state.settings?.[getVoiceSettingKey(isBack)];
-    if (settingsVoice) return settingsVoice;
+    if (settingsVoice) return normalizeVoiceSpec(settingsVoice);
 
     if (!card) return null;
 
@@ -775,22 +828,22 @@ function resolveVoiceSpecForSide(card, isBack) {
     const oppositeKey = isBack ? 'frontVoice' : 'backVoice';
 
     // 1) Current card in session deck
-    if (card[sideKey]) return card[sideKey];
+    if (card[sideKey]) return normalizeVoiceSpec(card[sideKey]);
 
     // 2) Recover from master deck by id
     if (card.id && Array.isArray(state.masterDeck)) {
         const fromMaster = state.masterDeck.find(c => c.id === card.id);
-        if (fromMaster?.[sideKey]) return fromMaster[sideKey];
+        if (fromMaster?.[sideKey]) return normalizeVoiceSpec(fromMaster[sideKey]);
         // Fallback: if deck was flipped and voice keys were not swapped in old data,
         // we still prefer having an explicit voice rather than auto-detect.
-        if (fromMaster?.[oppositeKey]) return fromMaster[oppositeKey];
+        if (fromMaster?.[oppositeKey]) return normalizeVoiceSpec(fromMaster[oppositeKey]);
     }
 
     // 3) Deck defaults from any card that carries voice metadata
     if (Array.isArray(state.masterDeck)) {
         const withVoice = state.masterDeck.find(c => c?.frontVoice || c?.backVoice);
-        if (withVoice?.[sideKey]) return withVoice[sideKey];
-        if (withVoice?.[oppositeKey]) return withVoice[oppositeKey];
+        if (withVoice?.[sideKey]) return normalizeVoiceSpec(withVoice[sideKey]);
+        if (withVoice?.[oppositeKey]) return normalizeVoiceSpec(withVoice[oppositeKey]);
     }
 
     return null;
@@ -1664,8 +1717,8 @@ function updateStateFromUI() {
     state.settings.selectionMode = ui.modeSelect?.value || 'weighted';
     state.settings.autoPlayFrontOnFlip = Boolean(ui.autoPlayFrontOnFlip.checked);
     state.settings.autoPlayBackOnFlip = Boolean(ui.autoPlayBackOnFlip.checked);
-    state.settings.frontVoice = ui.frontVoiceSelect?.value || AUTO_VOICE_VALUE;
-    state.settings.backVoice = ui.backVoiceSelect?.value || AUTO_VOICE_VALUE;
+    state.settings.frontVoice = normalizeVoiceSpec(ui.frontVoiceSelect?.value) || AUTO_VOICE_VALUE;
+    state.settings.backVoice = normalizeVoiceSpec(ui.backVoiceSelect?.value) || AUTO_VOICE_VALUE;
 }
 
 function refreshCategoryUI() {
@@ -1808,6 +1861,8 @@ export {
     fetchLatestVersionFromNetwork,
     hasNewerRemoteVersion,
     activatePendingUpdateFromVersionTag,
+    parseVoiceSpec,
+    normalizeVoiceSpec,
     resolveVoiceSpecForSide,
 };
 
