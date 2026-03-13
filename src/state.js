@@ -32,5 +32,7 @@ export const state = {
         selectionMode: SELECTION_MODE.default,
         autoPlayFrontOnFlip: false,
         autoPlayBackOnFlip: false,
+        frontVoice: '',
+        backVoice: '',
     }
 };

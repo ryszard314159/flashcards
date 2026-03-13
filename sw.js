@@ -2,7 +2,7 @@
 // sw.js - Service Worker for Flashcards App
 //
 // VERSION to be updated by utils/update-version.sh to "YYYY-MM-DD.HHMM"
-const VERSION = "2026-03-13.1304";
+const VERSION = "2026-03-13.1641";
 
 const CACHE_PREFIX = 'flashcards-';
 const LEGACY_VERSION_CACHE_RE = /^\d{4}-\d{2}-\d{2}\.\d{4}$/;
@@ -89,6 +89,9 @@ self.addEventListener('activate', (e) => {
 // });
 
 self.addEventListener('fetch', (event) => {
+  const requestUrl = new URL(event.request.url);
+  const isCoreModule = requestUrl.pathname.endsWith('/src/app.js') || requestUrl.pathname.endsWith('/src/config.js');
+
     // If the request is for the HTML file, go to the network first
     // with a 5-second timeout to prevent hanging on slow networks
     if (event.request.mode === 'navigate') {
@@ -111,6 +114,26 @@ self.addEventListener('fetch', (event) => {
         );
         return;
     }
+
+      if (isCoreModule) {
+        event.respondWith(
+          fetch(event.request).then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200 && networkResponse.type !== 'error') {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+            return networkResponse;
+          }).catch(() => {
+            return caches.open(CACHE_NAME)
+              .then((cache) => cache.match(event.request))
+              .then((cached) => cached || fetch(event.request));
+          })
+        );
+        return;
+      }
+
     // For everything else (JS, CSS, images), use cache-first
     // This ensures users see and interact with the version tag before new code loads
     event.respondWith(

@@ -15,15 +15,23 @@ let isRefreshing = false; // Global flag to prevent double-reload
 let hasPendingUpdate = false;
 let isActivatingUpdate = false;
 let isNormalizingPhraseSelection = false;
+let swRegistration = null;
+let refreshUpdateStatusFn = null;
 let nextZoneLongPressTimer = null;
 let nextZoneLongPressTriggered = false;
 const NEXT_ZONE_LONG_PRESS_MS = 500;
 let modeToastTimer = null;
 const NEXT_ZONE_DEBUG_ALERT = false;
+const IS_LOCAL_DEVELOPMENT = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
 
 // Speech Synthesis Cache
 let availableVoices = [];
 let voicesLoaded = false;
+let voiceRefreshTimer = null;
+const AUTO_VOICE_VALUE = '';
+const AUTO_VOICE_LABEL = 'Auto-detect / deck directive';
+const VOICE_REFRESH_INTERVAL_MS = 400;
+const MAX_VOICE_REFRESH_ATTEMPTS = 12;
 
 function markUpdateAvailable() {
     hasPendingUpdate = true;
@@ -158,6 +166,39 @@ async function activatePendingUpdateFromVersionTag(reg, versionTag, options = {}
     return Boolean(worker);
 }
 
+function activateWaitingWorkerImmediately(reg) {
+    if (!reg?.waiting) {
+        return false;
+    }
+
+    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    return true;
+}
+
+function bindVersionTagUpdateHandler() {
+    if (!ui.versionTag) {
+        return;
+    }
+
+    ui.versionTag.style.cursor = 'pointer';
+    ui.versionTag.onclick = async (e) => {
+        if (!ui.versionTag.classList.contains('is-update-available')) {
+            return; // Only allow click if update is available
+        }
+
+        if (!swRegistration) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        await activatePendingUpdateFromVersionTag(swRegistration, ui.versionTag, {
+            onNoWaitingWorker: () => refreshUpdateStatusFn?.(),
+        });
+    };
+}
+
 function init() {
 
     // Load voices for speech synthesis
@@ -169,8 +210,19 @@ function init() {
             updateViaCache: 'none'
         })
         .then(reg => {
+            swRegistration = reg;
+            navigator.serviceWorker.oncontrollerchange = () => {
+                if (!isRefreshing) {
+                    isRefreshing = true;
+                    window.location.reload();
+                }
+            };
+
             const checkWaitingWorker = () => {
                 if (reg.waiting) {
+                    if (IS_LOCAL_DEVELOPMENT) {
+                        return activateWaitingWorkerImmediately(reg);
+                    }
                     markUpdateAvailable();
                     return true;
                 }
@@ -183,6 +235,10 @@ function init() {
                 }
                 worker.addEventListener('statechange', () => {
                     if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                        if (IS_LOCAL_DEVELOPMENT) {
+                            worker.postMessage({ type: 'SKIP_WAITING' });
+                            return;
+                        }
                         markUpdateAvailable();
                     }
                 });
@@ -200,6 +256,7 @@ function init() {
                     checkWaitingWorker();
                 });
             };
+            refreshUpdateStatusFn = refreshUpdateStatus;
 
             // Attach listeners before forcing update checks to avoid missing events.
             reg.addEventListener('updatefound', () => {
@@ -213,29 +270,7 @@ function init() {
             // 1. Pre-check: Does a worker exist already?
             checkWaitingWorker();
 
-            // 2. Click Handler on versionTag
-            if (ui.versionTag) {
-                ui.versionTag.style.cursor = 'pointer';
-                ui.versionTag.onclick = async (e) => {
-                    if (!ui.versionTag.classList.contains('is-update-available')) {
-                        return; // Only allow click if update is available
-                    }
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    await activatePendingUpdateFromVersionTag(reg, ui.versionTag, {
-                        onNoWaitingWorker: refreshUpdateStatus,
-                    });
-                };
-            }
-
-            // 2b. Reload page when new Service Worker takes control
-            navigator.serviceWorker.oncontrollerchange = () => {
-                if (!isRefreshing) {
-                    isRefreshing = true;
-                    window.location.reload();
-                }
-            };
+            bindVersionTagUpdateHandler();
 
             const refreshWhenVisible = () => {
                 if (document.visibilityState !== 'visible') {
@@ -292,6 +327,10 @@ function init() {
         settingsBtn: document.getElementById('settingsBtn'),
         settingsOverlay: document.getElementById('settingsOverlay'),
         speechRateInput: document.getElementById('speechRateInput'),
+        frontVoiceSearch: document.getElementById('frontVoiceSearch'),
+        frontVoiceSelect: document.getElementById('frontVoiceSelect'),
+        backVoiceSearch: document.getElementById('backVoiceSearch'),
+        backVoiceSelect: document.getElementById('backVoiceSelect'),
         modeSelect: document.getElementById('modeSelect'),
         remoteExamplesList: document.getElementById('remoteExamplesList'),
         // srsFactorInput: document.getElementById('srsFactor'),
@@ -301,6 +340,7 @@ function init() {
     };
 
     assertRequiredUI();
+    bindVersionTagUpdateHandler();
     ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
     if (hasPendingUpdate) {
         ui.versionTag.classList.add('is-update-available');
@@ -400,6 +440,10 @@ function assertRequiredUI() {
         'settingsBtn',
         'settingsOverlay',
         'speechRateInput',
+        'frontVoiceSearch',
+        'frontVoiceSelect',
+        'backVoiceSearch',
+        'backVoiceSelect',
         'tempInput',
         'versionTag'
     ];
@@ -436,21 +480,130 @@ function debugNextZone(message, context = null) {
  * Voices are loaded asynchronously on some browsers
  */
 function loadAvailableVoices() {
-    if (voicesLoaded) return;
+    if (!window.speechSynthesis?.getVoices) {
+        syncVoiceSelectors();
+        return;
+    }
 
-    const updateVoiceList = () => {
+    const updateVoiceList = (attempt = 0) => {
         availableVoices = window.speechSynthesis.getVoices();
         if (availableVoices.length > 0) {
             voicesLoaded = true;
+            if (voiceRefreshTimer) {
+                clearTimeout(voiceRefreshTimer);
+                voiceRefreshTimer = null;
+            }
             if (DEBUG) {
                 console.log(`[Speech] Loaded ${availableVoices.length} voices:`,
                     availableVoices.map(v => `${v.name} (${v.lang})`).join(', '));
             }
+        } else if (attempt < MAX_VOICE_REFRESH_ATTEMPTS) {
+            voiceRefreshTimer = setTimeout(() => updateVoiceList(attempt + 1), VOICE_REFRESH_INTERVAL_MS);
         }
+
+        syncVoiceSelectors();
     };
 
+    if (!voicesLoaded && voiceRefreshTimer) {
+        clearTimeout(voiceRefreshTimer);
+        voiceRefreshTimer = null;
+    }
+
     updateVoiceList();
-    window.speechSynthesis.onvoiceschanged = updateVoiceList;
+    window.speechSynthesis.onvoiceschanged = () => updateVoiceList();
+}
+
+function getVoiceSettingKey(isBack) {
+    return isBack ? 'backVoice' : 'frontVoice';
+}
+
+function buildVoiceSpecLabel(voice) {
+    return `${voice.name} (${voice.lang})`;
+}
+
+function getVoiceSpecCatalog() {
+    const seen = new Set();
+
+    return availableVoices
+        .filter(voice => voice?.name && voice?.lang)
+        .map(buildVoiceSpecLabel)
+        .filter((spec) => {
+            if (seen.has(spec)) {
+                return false;
+            }
+            seen.add(spec);
+            return true;
+        })
+        .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
+}
+
+function filterVoiceSpecs(specs, filterText = '') {
+    const normalizedFilter = (filterText || '').trim().toLowerCase();
+
+    if (!normalizedFilter) {
+        return specs;
+    }
+
+    return specs.filter(spec => spec.toLowerCase().includes(normalizedFilter));
+}
+
+function renderVoiceOptions(selectElement, filterText, selectedValue = AUTO_VOICE_VALUE) {
+    if (!selectElement) {
+        return;
+    }
+
+    const allSpecs = getVoiceSpecCatalog();
+    const filteredSpecs = filterVoiceSpecs(allSpecs, filterText);
+    const specsToRender = [...filteredSpecs];
+
+    if (selectedValue && !specsToRender.includes(selectedValue)) {
+        specsToRender.unshift(selectedValue);
+    }
+
+    selectElement.innerHTML = '';
+
+    const autoOption = document.createElement('option');
+    autoOption.value = AUTO_VOICE_VALUE;
+    autoOption.textContent = AUTO_VOICE_LABEL;
+    selectElement.appendChild(autoOption);
+
+    if (allSpecs.length === 0) {
+        const loadingOption = document.createElement('option');
+        loadingOption.value = '__voice_loading__';
+        loadingOption.textContent = window.speechSynthesis?.getVoices
+            ? 'Loading system voices...'
+            : 'Speech voices are not supported in this browser';
+        loadingOption.disabled = true;
+        selectElement.appendChild(loadingOption);
+    } else if (specsToRender.length === 0) {
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '__no_match__';
+        emptyOption.textContent = 'No matching voices';
+        emptyOption.disabled = true;
+        selectElement.appendChild(emptyOption);
+    } else {
+        specsToRender.forEach((spec) => {
+            const option = document.createElement('option');
+            option.value = spec;
+            option.textContent = spec;
+            selectElement.appendChild(option);
+        });
+    }
+
+    selectElement.value = selectedValue || AUTO_VOICE_VALUE;
+}
+
+function syncVoiceSelectors() {
+    if (!ui.frontVoiceSelect || !ui.backVoiceSelect) {
+        return;
+    }
+
+    renderVoiceOptions(ui.frontVoiceSelect, ui.frontVoiceSearch?.value, state.settings.frontVoice || AUTO_VOICE_VALUE);
+    renderVoiceOptions(ui.backVoiceSelect, ui.backVoiceSearch?.value, state.settings.backVoice || AUTO_VOICE_VALUE);
+}
+
+function updateVoiceSetting(isBack, value) {
+    state.settings[getVoiceSettingKey(isBack)] = value || AUTO_VOICE_VALUE;
 }
 
 /**
@@ -613,6 +766,9 @@ function selectBestVoiceForLanguage(langCode) {
 }
 
 function resolveVoiceSpecForSide(card, isBack) {
+    const settingsVoice = state.settings?.[getVoiceSettingKey(isBack)];
+    if (settingsVoice) return settingsVoice;
+
     if (!card) return null;
 
     const sideKey = isBack ? 'backVoice' : 'frontVoice';
@@ -784,6 +940,8 @@ function setupEventListeners() {
     // Settings Modal
     ui.settingsBtn.addEventListener('click', () => {
         ui.menuOverlay.classList.remove('is-visible');
+        loadAvailableVoices();
+        syncSettingsToUI();
         ui.settingsOverlay.classList.add('is-visible');
     });
 
@@ -999,6 +1157,22 @@ function setupEventListeners() {
         updateSpeechRate(parseFloat(e.target.value) || SPEECH_RATE.default);
     });
 
+    ui.frontVoiceSearch.addEventListener('input', (e) => {
+        renderVoiceOptions(ui.frontVoiceSelect, e.target.value, state.settings.frontVoice || AUTO_VOICE_VALUE);
+    });
+
+    ui.backVoiceSearch.addEventListener('input', (e) => {
+        renderVoiceOptions(ui.backVoiceSelect, e.target.value, state.settings.backVoice || AUTO_VOICE_VALUE);
+    });
+
+    ui.frontVoiceSelect.addEventListener('change', (e) => {
+        updateVoiceSetting(false, e.target.value);
+    });
+
+    ui.backVoiceSelect.addEventListener('change', (e) => {
+        updateVoiceSetting(true, e.target.value);
+    });
+
     ui.resetSessionBtn.addEventListener('click', () => {
         resetSessionSettings();
     });
@@ -1148,8 +1322,13 @@ function resetSessionSettings() {
     updateSpeechRate(SPEECH_RATE.default);
     state.settings.autoPlayFrontOnFlip = false;
     state.settings.autoPlayBackOnFlip = false;
+    state.settings.frontVoice = AUTO_VOICE_VALUE;
+    state.settings.backVoice = AUTO_VOICE_VALUE;
     if (ui.autoPlayFrontOnFlip) ui.autoPlayFrontOnFlip.checked = false;
     if (ui.autoPlayBackOnFlip) ui.autoPlayBackOnFlip.checked = false;
+    if (ui.frontVoiceSearch) ui.frontVoiceSearch.value = '';
+    if (ui.backVoiceSearch) ui.backVoiceSearch.value = '';
+    syncVoiceSelectors();
     updateSessionSize(SESSION_SIZE.default);
     console.log(`resetSessionSettings: default values restored.`);
 }
@@ -1472,6 +1651,9 @@ function syncSettingsToUI() {
     if (ui.modeSelect) ui.modeSelect.value = state.settings.selectionMode;
     if (ui.autoPlayFrontOnFlip) ui.autoPlayFrontOnFlip.checked = Boolean(state.settings.autoPlayFrontOnFlip);
     if (ui.autoPlayBackOnFlip) ui.autoPlayBackOnFlip.checked = Boolean(state.settings.autoPlayBackOnFlip);
+    if (ui.frontVoiceSearch) ui.frontVoiceSearch.value = '';
+    if (ui.backVoiceSearch) ui.backVoiceSearch.value = '';
+    syncVoiceSelectors();
     updateNextZoneModeIcon();
 }
 
@@ -1482,6 +1664,8 @@ function updateStateFromUI() {
     state.settings.selectionMode = ui.modeSelect?.value || 'weighted';
     state.settings.autoPlayFrontOnFlip = Boolean(ui.autoPlayFrontOnFlip.checked);
     state.settings.autoPlayBackOnFlip = Boolean(ui.autoPlayBackOnFlip.checked);
+    state.settings.frontVoice = ui.frontVoiceSelect?.value || AUTO_VOICE_VALUE;
+    state.settings.backVoice = ui.backVoiceSelect?.value || AUTO_VOICE_VALUE;
 }
 
 function refreshCategoryUI() {
@@ -1624,6 +1808,7 @@ export {
     fetchLatestVersionFromNetwork,
     hasNewerRemoteVersion,
     activatePendingUpdateFromVersionTag,
+    resolveVoiceSpecForSide,
 };
 
 function adjustSpeechRate(delta) {

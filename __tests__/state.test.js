@@ -170,6 +170,13 @@ describe('state.js - Application State', () => {
       expect(typeof state.settings.sessionSize).toBe('number');
     });
 
+    test('should have frontVoice and backVoice settings', () => {
+      expect(state.settings).toHaveProperty('frontVoice');
+      expect(state.settings).toHaveProperty('backVoice');
+      expect(typeof state.settings.frontVoice).toBe('string');
+      expect(typeof state.settings.backVoice).toBe('string');
+    });
+
     test('temperature should be within valid range', () => {
       expect(state.settings.temperature).toBeGreaterThanOrEqual(TEMPERATURE.min);
       expect(state.settings.temperature).toBeLessThanOrEqual(TEMPERATURE.max);
@@ -183,6 +190,11 @@ describe('state.js - Application State', () => {
     test('sessionSize should be within valid range', () => {
       expect(state.settings.sessionSize).toBeGreaterThanOrEqual(SESSION_SIZE.min);
       expect(state.settings.sessionSize).toBeLessThanOrEqual(SESSION_SIZE.max);
+    });
+
+    test('voice settings should default to auto-detect', () => {
+      expect(state.settings.frontVoice).toBe('');
+      expect(state.settings.backVoice).toBe('');
     });
   });
 });

@@ -16,4 +16,4 @@ sed -i "s/VERSION: \".*\"/VERSION: \"$VERSION\"/" src/config.js
 # update sw.js: const VERSION = "YYYY-MM-DD.HHMM"
 sed -i "s|const VERSION = .*|const VERSION = \"$VERSION\";|" sw.js
 
-echo "Updated version to $VERSION in src/config.js and sw.js"
+echo "Updated to VERSION: $VERSION in src/config.js and sw.js"
