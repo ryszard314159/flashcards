@@ -8,6 +8,7 @@ import { SPEECH_RATE, state } from './state.js';
 import { SCORE_SETTINGS } from './state.js';
 import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
+import { HISTORY_SIZE } from './state.js';
 import { pickWeightedCard, generateSessionDeck, calculateProbabilities, filterCards, flipDeck, applyScoreChange } from './srs.js';
 
 let ui = {};
@@ -378,6 +379,7 @@ function init() {
         selectAllBtn: document.getElementById('selectAllBtn'),
         selectNoneBtn: document.getElementById('selectNoneBtn'),
         sessionSize: document.getElementById('sessionSize'),
+        historySize: document.getElementById('historySizeInput'),
         settingsBtn: document.getElementById('settingsBtn'),
         settingsOverlay: document.getElementById('settingsOverlay'),
         speechRateInput: document.getElementById('speechRateInput'),
@@ -1175,7 +1177,7 @@ function setupEventListeners() {
 
     ui.prevZone.addEventListener('click', (e) => {
         e.stopPropagation();
-        navigate(-1);
+        navigateBack();
     });
 
     // File Import
@@ -1466,6 +1468,8 @@ function resetSessionSettings() {
     if (ui.backVoiceSearch) ui.backVoiceSearch.value = '';
     syncVoiceSelectors();
     updateSessionSize(SESSION_SIZE.default);
+    if (ui.historySize) ui.historySize.value = HISTORY_SIZE.default;
+    state.settings.historySize = HISTORY_SIZE.default;
     console.log(`resetSessionSettings: default values restored.`);
 }
 
@@ -1685,11 +1689,32 @@ function updateProbabilities() {
     state.calculateProbabilities = false;
 }
 
+function pushToHistory(cardIndex) {
+    const maxLen = state.settings.historySize || 0;
+    if (maxLen <= 0) return;
+    state.navigationHistory.push(cardIndex);
+    if (state.navigationHistory.length > maxLen) {
+        state.navigationHistory.shift();
+    }
+}
+
+function navigateBack() {
+    state.isFlipped = false;
+    ui.cardInner?.classList.remove('is-flipped');
+    if (state.navigationHistory.length > 0) {
+        state.currentCardIndex = state.navigationHistory.pop();
+        setTimeout(updateUI, 150);
+    } else {
+        showToastMessage('No history yet', 1000);
+    }
+}
+
 function navigate(direction) {
     state.isFlipped = false;
     ui.cardInner?.classList.remove('is-flipped');
     const deckSize = state.currentSessionDeck.length;
     if (deckSize === 0) return;
+    if (direction > 0) pushToHistory(state.currentCardIndex);
     state.currentCardIndex = (state.currentCardIndex + direction + deckSize) % deckSize;
     setTimeout(updateUI, 150);
 }
@@ -1701,6 +1726,8 @@ function drawCard() {
     // 1. Visual Reset
     state.isFlipped = false;
     ui.cardInner?.classList.remove('is-flipped');
+
+    pushToHistory(state.currentCardIndex);
 
     if (state.calculateProbabilities) {
         updateProbabilities();
@@ -1761,6 +1788,7 @@ function applySessionLogic() {
     }
 
     state.currentCardIndex = 0;
+    state.navigationHistory = [];
     updateUI();
 }
 
@@ -1778,6 +1806,7 @@ function updateUI() {
 
 function syncSettingsToUI() {
     if (ui.sessionSize) ui.sessionSize.value = state.settings.sessionSize;
+    if (ui.historySize) ui.historySize.value = state.settings.historySize;
     if (ui.tempInput) ui.tempInput.value = state.settings.temperature;
     // if (ui.srsFactorInput) {
     //     ui.srsFactorInput.value = state.settings.srsFactor;
@@ -1795,6 +1824,7 @@ function syncSettingsToUI() {
 
 function updateStateFromUI() {
     state.settings.sessionSize = parseInt(ui.sessionSize.value);
+    state.settings.historySize = Math.max(HISTORY_SIZE.min, Math.min(HISTORY_SIZE.max, parseInt(ui.historySize?.value) || 0));
     state.settings.temperature = parseFloat(ui.tempInput.value);
     state.settings.speechRate = parseFloat(ui.speechRateInput.value);
     state.settings.selectionMode = ui.modeSelect?.value || 'weighted';

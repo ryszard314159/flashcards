@@ -593,6 +593,20 @@ body {
     appearance: textfield; /* Hides default browser arrows */
 }
 
+/* Standalone number inputs (not inside .input-group) get a visible box */
+#sessionSize, #historySize {
+    border: 2px solid var(--color-smoke) !important;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.4rem;
+    background: white !important;
+    transition: border-color 120ms ease;
+}
+
+#sessionSize:focus, #historySize:focus {
+    outline: none;
+    border-color: var(--color-ocean) !important;
+}
+
 /* Hide webkit spinners */
 .setting-item input::-webkit-inner-spin-button,
 .setting-item input::-webkit-outer-spin-button {
