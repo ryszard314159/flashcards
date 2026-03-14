@@ -369,6 +369,7 @@ function init() {
         menuBtn: document.getElementById('menuBtn'),
         menuOverlay: document.getElementById('menuOverlay'),
         shareBtn: document.getElementById('shareBtn'),
+        exportBtn: document.getElementById('exportBtn'),
         nextZone: document.getElementById('nextZone'),
         prevZone: document.getElementById('prevZone'),
         resetSessionBtn: document.getElementById('resetSessionBtn'),
@@ -993,6 +994,51 @@ function setupEventListeners() {
     ui.helpBtn.addEventListener('click', () => {
         ui.menuOverlay.classList.remove('is-visible');
         toggleHelpModal();
+    });
+
+    // Export
+    ui.exportBtn?.addEventListener('click', () => {
+        ui.menuOverlay.classList.remove('is-visible');
+        const deck = state.masterDeck;
+        if (!deck || deck.length === 0) {
+            showToastMessage('No deck loaded to export.');
+            return;
+        }
+
+        // Rebuild .deck text from masterDeck
+        const lines = [];
+
+        // Deck-wide voice directive (from first card that has voice metadata)
+        const voiceCard = deck.find(c => c.frontVoice || c.backVoice);
+        if (voiceCard) {
+            const fv = voiceCard.frontVoice || '';
+            const bv = voiceCard.backVoice || '';
+            lines.push(`& Front: ${fv}; Back: ${bv}`);
+            lines.push('');
+        }
+
+        // Group by category pair (frontLabel|backLabel)
+        let lastFrontLabel = null, lastBackLabel = null;
+        for (const card of deck) {
+            if (card.frontLabel !== lastFrontLabel || card.backLabel !== lastBackLabel) {
+                lines.push(`* ${card.frontLabel} | ${card.backLabel}`);
+                lastFrontLabel = card.frontLabel;
+                lastBackLabel = card.backLabel;
+            }
+            const score = typeof card.score === 'number' ? card.score : 0;
+            lines.push(`${card.frontText} | ${card.backText} | ${score}`);
+        }
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'deck.deck';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToastMessage(`✅ Exported ${deck.length} cards`);
     });
 
     // Share
