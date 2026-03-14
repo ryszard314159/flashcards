@@ -1,6 +1,6 @@
 // src/io.js
 
-import { REPO_CONFIG } from './config.js';
+import { REPO_CONFIG, DEBUG } from './config.js';
 
 export const KEYS = {
     SETTINGS: 'flashcardSettings',
@@ -53,7 +53,7 @@ export async function fetchRemoteDeckList(subPath) {
     // Construct URL manually
     const url = `https://api.github.com/repos/${REPO_CONFIG.owner}/${REPO_CONFIG.repo}/contents/${targetPath}`;
 
-    console.log("Fetching from:", url); // Verify this in your Pixel's remote debugger if needed
+    if (DEBUG) console.log("Fetching from:", url);
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -71,8 +71,10 @@ export async function fetchTextFromUrl(url) {
     const text = await response.text();
 
     const firstNonEmpty = (text.split(/\r?\n/).find(l => l.trim().length > 0) || '');
-    console.log('[DeckFetch] url:', url);
-    console.log('[DeckFetch] first non-empty line:', JSON.stringify(firstNonEmpty));
+    if (DEBUG) {
+        console.log('[DeckFetch] url:', url);
+        console.log('[DeckFetch] first non-empty line:', JSON.stringify(firstNonEmpty));
+    }
 
     return text;
 }
@@ -91,7 +93,7 @@ export function processDeckText(rawText) {
     let foundVoiceDirective = false;
 
     const firstNonEmpty = lines.find(l => l.trim().length > 0) || '';
-    console.log('[DeckParse] first non-empty line:', JSON.stringify(firstNonEmpty));
+    if (DEBUG) console.log('[DeckParse] first non-empty line:', JSON.stringify(firstNonEmpty));
 
     lines.forEach(line => {
         const trimmed = line.trim();
@@ -115,7 +117,7 @@ export function processDeckText(rawText) {
                 const backMatch = parts[1].match(/Back:\s*(.+)$/i);
                 if (backMatch) deckBackVoice = backMatch[1].trim();
             }
-            console.log('[DeckParse] parsed deck voices:', {
+            if (DEBUG) console.log('[DeckParse] parsed deck voices:', {
                 frontVoice: deckFrontVoice,
                 backVoice: deckBackVoice
             });
@@ -147,7 +149,7 @@ export function processDeckText(rawText) {
         }
     });
 
-    if (newCards.length > 0) {
+    if (newCards.length > 0 && DEBUG) {
         console.log('[DeckParse] first parsed card voice fields:', {
             frontVoice: newCards[0].frontVoice,
             backVoice: newCards[0].backVoice
@@ -155,7 +157,7 @@ export function processDeckText(rawText) {
     }
 
     if (!foundVoiceDirective) {
-        console.warn('[DeckParse] no top-level voice directive found. Expected first non-empty line like: "& Front: ...; Back: ..."');
+        if (DEBUG) console.warn('[DeckParse] no top-level voice directive found. Expected first non-empty line like: "& Front: ...; Back: ..."');
     }
 
     return newCards;
@@ -168,9 +170,11 @@ export async function deckReader(file) {
         reader.onload = (event) => {
             try {
                 const rawText = String(event.target.result || '');
-                const firstNonEmpty = (rawText.split(/\r?\n/).find(l => l.trim().length > 0) || '');
-                console.log('[DeckReader] file selected:', file?.name || '(unknown)');
-                console.log('[DeckReader] first non-empty line:', JSON.stringify(firstNonEmpty));
+                if (DEBUG) {
+                    const firstNonEmpty = (rawText.split(/\r?\n/).find(l => l.trim().length > 0) || '');
+                    console.log('[DeckReader] file selected:', file?.name || '(unknown)');
+                    console.log('[DeckReader] first non-empty line:', JSON.stringify(firstNonEmpty));
+                }
 
                 const cards = processDeckText(rawText);
                 if (!cards.length) return reject("Empty or invalid deck file.");

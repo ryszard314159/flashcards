@@ -368,6 +368,7 @@ function init() {
         importOverlay: document.getElementById('importOverlay'),
         menuBtn: document.getElementById('menuBtn'),
         menuOverlay: document.getElementById('menuOverlay'),
+        shareBtn: document.getElementById('shareBtn'),
         nextZone: document.getElementById('nextZone'),
         prevZone: document.getElementById('prevZone'),
         resetSessionBtn: document.getElementById('resetSessionBtn'),
@@ -885,7 +886,7 @@ function toggleSelectionModeFromNextZone() {
     console.log(`Selection mode toggled via long press: ${nextMode}`);
 }
 
-function showToastMessage(text, timeoutMs = 1200) {
+function showToastMessage(text, timeoutMs = 3000) {
     let toast = document.getElementById('modeToast');
 
     if (!toast) {
@@ -992,6 +993,26 @@ function setupEventListeners() {
     ui.helpBtn.addEventListener('click', () => {
         ui.menuOverlay.classList.remove('is-visible');
         toggleHelpModal();
+    });
+
+    // Share
+    ui.shareBtn?.addEventListener('click', async () => {
+        ui.menuOverlay.classList.remove('is-visible');
+        const shareData = {
+            title: 'Immersive Flashcards',
+            text: '🧠 I\'ve been studying with Immersive Flashcards — a distraction-free, offline-ready PWA for spaced repetition learning. Try it!',
+            url: window.location.href,
+        };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                if (err.name !== 'AbortError') console.error('Share failed:', err);
+            }
+        } else {
+            const copied = await copyTextToClipboard(`${shareData.text}\n${shareData.url}`);
+            showToastMessage(copied ? '🔗 Link copied to clipboard!' : 'Copy the URL from your address bar');
+        }
     });
 
     ui.helpOverlay.addEventListener('click', (e) => {

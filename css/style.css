@@ -447,19 +447,20 @@ body {
 .mode-toast {
     position: fixed;
     left: 50%;
-    bottom: 2.5rem;
-    transform: translateX(-50%) translateY(12px);
-    background: rgba(12, 26, 39, 0.92);
+    bottom: 3rem;
+    transform: translateX(-50%) translateY(16px);
+    background: rgba(12, 26, 39, 0.95);
     color: #fff;
-    padding: 0.6rem 0.9rem;
-    border-radius: 0.7rem;
-    font-size: 0.9rem;
+    padding: 0.85rem 1.4rem;
+    border-radius: 0.9rem;
+    font-size: 1.05rem;
     font-weight: 600;
     letter-spacing: 0.2px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.45);
     opacity: 0;
     pointer-events: none;
     z-index: 1200;
-    transition: opacity 140ms ease, transform 140ms ease;
+    transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .mode-toast.is-visible {

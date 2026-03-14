@@ -4,6 +4,7 @@
  */
 
 import { SCORE_SETTINGS, TEMPERATURE, SPEECH_RATE, SESSION_SIZE, state } from '../src/state.js';
+import { save, load, KEYS } from '../src/io.js';
 
 describe('state.js - Application State', () => {
   // ============================================================================
@@ -195,6 +196,54 @@ describe('state.js - Application State', () => {
     test('voice settings should default to auto-detect', () => {
       expect(state.settings.frontVoice).toBe('');
       expect(state.settings.backVoice).toBe('');
+    });
+  });
+
+  // ============================================================================
+  // Category persistence round-trip
+  // ============================================================================
+  describe('activeCategories persistence', () => {
+    afterEach(() => {
+      localStorage.clear();
+      state.settings.activeCategories = [];
+    });
+
+    test('activeCategories is included when settings are saved', () => {
+      state.settings.activeCategories = ['Spanish', 'German'];
+      save(KEYS.SETTINGS, state.settings);
+
+      const loaded = load(KEYS.SETTINGS);
+      expect(loaded.activeCategories).toEqual(['Spanish', 'German']);
+    });
+
+    test('activeCategories survives a full save/load round-trip', () => {
+      state.settings.activeCategories = ['Biology', 'Chemistry'];
+      save(KEYS.SETTINGS, state.settings);
+
+      // Simulate what init() does on reload
+      const restored = load(KEYS.SETTINGS);
+      const mergedSettings = { ...state.settings, ...restored };
+
+      expect(mergedSettings.activeCategories).toEqual(['Biology', 'Chemistry']);
+    });
+
+    test('empty activeCategories is preserved (not dropped) on round-trip', () => {
+      state.settings.activeCategories = [];
+      save(KEYS.SETTINGS, state.settings);
+
+      const loaded = load(KEYS.SETTINGS);
+      expect(Array.isArray(loaded.activeCategories)).toBe(true);
+      expect(loaded.activeCategories).toHaveLength(0);
+    });
+
+    test('other settings are unaffected when activeCategories changes', () => {
+      state.settings.activeCategories = ['French'];
+      state.settings.temperature = 2.0;
+      save(KEYS.SETTINGS, state.settings);
+
+      const loaded = load(KEYS.SETTINGS);
+      expect(loaded.activeCategories).toEqual(['French']);
+      expect(loaded.temperature).toBe(2.0);
     });
   });
 });
