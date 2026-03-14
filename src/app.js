@@ -350,7 +350,6 @@ function init() {
         autoPlayBackOnFlip: document.getElementById('autoPlayBackOnFlip'),
         cardInner: document.getElementById('cardInner'),
         categoryList: document.getElementById('categoryList'),
-        closeDeck: document.getElementById('closeDeck'),
         closeImport: document.getElementById('closeImport'),
         closeSelect: document.getElementById('closeSelect'),
         closeSettings: document.getElementById('closeSettings'),
@@ -368,6 +367,7 @@ function init() {
         importOverlay: document.getElementById('importOverlay'),
         menuBtn: document.getElementById('menuBtn'),
         menuOverlay: document.getElementById('menuOverlay'),
+        closeMenuBtn: document.getElementById('closeMenuBtn'),
         shareBtn: document.getElementById('shareBtn'),
         exportBtn: document.getElementById('exportBtn'),
         nextZone: document.getElementById('nextZone'),
@@ -470,7 +470,6 @@ function assertRequiredUI() {
         'autoPlayBackOnFlip',
         'cardInner',
         'categoryList',
-        'closeDeck',
         'closeImport',
         'closeSelect',
         'closeSettings',
@@ -979,6 +978,10 @@ function setupEventListeners() {
         ui.menuOverlay.classList.toggle('is-visible');
     });
 
+    ui.closeMenuBtn?.addEventListener('click', () => {
+        ui.menuOverlay.classList.remove('is-visible');
+    });
+
     window.addEventListener('click', () => ui.menuOverlay.classList.remove('is-visible'));
 
     ui.searchBar.addEventListener('search', (e) => {
@@ -1101,20 +1104,7 @@ function setupEventListeners() {
         ui.deckOverlay.classList.add('is-visible');
     });
 
-    ui.closeDeck.addEventListener('click', () => {
-        const checkboxes = ui.categoryList.querySelectorAll('input:checked');
-        state.settings.activeCategories = Array.from(checkboxes).map(cb => cb.value);
 
-        // Safety: if nothing is selected, prevent closing and log warning
-        if (state.settings.activeCategories.length === 0) {
-            console.warn("Category selection: At least one category must be selected.");
-            return;
-        }
-
-        ui.deckOverlay.classList.remove('is-visible');
-        applySessionLogic();
-        save(KEYS.SETTINGS, state.settings); // Save active categories as part of settings
-    });
 
     // SRS Slider Feedback
     // ui.srsFactorInput?.addEventListener('input', (e) => {
@@ -1251,7 +1241,18 @@ function setupEventListeners() {
     });
 
     ui.closeSelect.addEventListener('click', () => {
+        const checkboxes = ui.categoryList.querySelectorAll('input:checked');
+        const selected = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selected.length === 0) {
+            showToastMessage('⚠️ Select at least one category', 1000, { centered: true });
+            return;
+        }
+
+        state.settings.activeCategories = selected;
         ui.deckOverlay.classList.remove('is-visible');
+        applySessionLogic();
+        save(KEYS.SETTINGS, state.settings);
     });
 
     ui.selectAllBtn.addEventListener('click', () => {
