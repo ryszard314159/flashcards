@@ -887,7 +887,7 @@ function toggleSelectionModeFromNextZone() {
     console.log(`Selection mode toggled via long press: ${nextMode}`);
 }
 
-function showToastMessage(text, timeoutMs = 3000) {
+function showToastMessage(text, timeoutMs = 3000, { centered = false } = {}) {
     let toast = document.getElementById('modeToast');
 
     if (!toast) {
@@ -898,6 +898,7 @@ function showToastMessage(text, timeoutMs = 3000) {
     }
 
     toast.textContent = text;
+    toast.classList.toggle('mode-toast--centered', centered);
     toast.classList.add('is-visible');
 
     clearTimeout(modeToastTimer);
@@ -1346,6 +1347,9 @@ async function handleImportData(cards) {
     refreshCategoryUI();
     applySessionLogic();
     ui.menuOverlay?.classList.remove('is-visible');
+    ui.importOverlay?.classList.remove('is-visible');
+    const categoryCount = new Set(cards.map(c => c.frontLabel)).size;
+    showToastMessage(`✅ Imported ${cards.length} cards across ${categoryCount} ${categoryCount === 1 ? 'category' : 'categories'}`, 3000, { centered: true });
     console.log("Import successful, deck size:", cards.length);
 }
 

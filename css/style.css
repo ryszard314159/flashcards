@@ -468,6 +468,22 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
+.mode-toast--centered {
+    bottom: auto;
+    top: 50%;
+    transform: translateX(-50%) translateY(calc(-50% + 16px));
+    padding: 1.4rem 2.2rem;
+    font-size: 1.25rem;
+    border-radius: 1.1rem;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.55);
+    text-align: center;
+    max-width: min(90vw, 420px);
+}
+
+.mode-toast--centered.is-visible {
+    transform: translateX(-50%) translateY(-50%);
+}
+
 /* GitHub Scanning / Remote List */
 /* Container for the GitHub decks */
 #remoteExamplesList {
