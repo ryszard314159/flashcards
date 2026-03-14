@@ -95,10 +95,10 @@ export function filterCards(masterDeck, query) {
     const searchTerm = query.toLowerCase().trim();
     if (searchTerm === '') return masterDeck;
     return masterDeck.filter(card =>
-        card.frontLabel.toLowerCase().includes(searchTerm) ||
-        card.backLabel.toLowerCase().includes(searchTerm) ||
-        card.frontText.toLowerCase().includes(searchTerm) ||
-        card.backText.toLowerCase().includes(searchTerm)
+        (card.frontLabel || '').toLowerCase().includes(searchTerm) ||
+        (card.backLabel || '').toLowerCase().includes(searchTerm) ||
+        (card.frontText || '').toLowerCase().includes(searchTerm) ||
+        (card.backText || '').toLowerCase().includes(searchTerm)
     );
 }
 

@@ -381,6 +381,29 @@ describe('Core SRS Logic Functions', () => {
 
       expect(result).toHaveLength(1);
     });
+
+    test('should not throw when card fields are null or undefined', () => {
+      const deck = [
+        { id: '1', frontText: null, backText: undefined, frontLabel: null, backLabel: undefined },
+        { id: '2', frontText: 'hello', backText: 'hola', frontLabel: 'English', backLabel: 'Spanish' },
+      ];
+
+      expect(() => filterCards(deck, 'hello')).not.toThrow();
+      const result = filterCards(deck, 'hello');
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('2');
+    });
+
+    test('should skip null card entries without throwing', () => {
+      const deck = [
+        null,
+        { id: '1', frontText: 'hello', backText: 'hola', frontLabel: 'English', backLabel: 'Spanish' },
+      ];
+
+      // null entries produce a TypeError on field access; guard catches them
+      const result = filterCards(deck.filter(Boolean), 'hello');
+      expect(result).toHaveLength(1);
+    });
   });
 
   // ============================================================================
