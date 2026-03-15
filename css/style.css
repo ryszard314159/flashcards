@@ -147,19 +147,29 @@ body {
 
 .label { font-weight: bold; color: #666; font-size: 0.8rem; letter-spacing: 1px; }
 .freq-btn { 
-    width: 2.5rem; height: 2.5rem; 
+    height: 2.5rem; 
+    min-width: 2.5rem;
     border-radius: 5px;
     /* border: 1px solid var(--color-smoke); */
     border: transparent;
     background: transparent;
     cursor: pointer;
     /* MODIFICATIONS */
-    font-size: 1.5rem;         /* Makes the + and - larger */
-    /* font-weight: bold;        /* Makes them easier to see on the Pixel */
+    font-size: 1.5rem;         /* Makes the arrows larger */
     display: inline-flex;     /* Helps with centering */
     align-items: center;      /* Vertical center */
     justify-content: center;   /* Horizontal center */
     line-height: 1;
+    gap: 0.2rem;
+    padding: 0 0.3rem;
+}
+.freq-btn .freq-arrow { flex-shrink: 0; }
+.freq-btn .freq-score {
+    font-size: 1rem;
+    width: 1.8rem;
+    flex-shrink: 0;
+    text-align: center;
+    overflow: hidden;
 }
 
 .card-body {

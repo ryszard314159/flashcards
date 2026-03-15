@@ -1639,8 +1639,12 @@ function setupWholePhraseSelection() {
 function handleFrequencyChange(change) {
     const card = state.currentSessionDeck[state.currentCardIndex];
 
+    if (!card) {
+        showToastMessage('Please load the deck!', 2000, { centered: true });
+        return;
+    }
+
     // 1. Assert Entry State
-    assert(!!card, "No card selected for frequency change.");
     assert(typeof card.score === 'number', "Card missing score", card);
     assert(change === 1 || change === -1, "Invalid frequency change direction", { change });
 
@@ -1651,6 +1655,15 @@ function handleFrequencyChange(change) {
 
     save(KEYS.DECK, state.masterDeck);
     provideVisualFeedback(change > 0 ? 'up' : 'down');
+
+    const cls = change > 0 ? '.freq-up' : '.freq-down';
+    ui.cardInner.querySelectorAll(cls).forEach(b => {
+        const scoreSpan = b.querySelector('.freq-score');
+        if (scoreSpan) {
+            scoreSpan.textContent = card.score;
+            setTimeout(() => { scoreSpan.textContent = ''; }, 1200);
+        }
+    });
 }
 
 function handleSearch(query) {
