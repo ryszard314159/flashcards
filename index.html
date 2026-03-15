@@ -38,39 +38,35 @@
                 <div class="card-face card-front">
                     <div class="card-grid">
                         <header class="card-header">
-                            <button class="freq-btn freq-down"><span class="freq-arrow">⬇️</span><span class="freq-score"></span></button>
                             <span id="frontLabel" class="label">FRONT</span>
-                            <button class="freq-btn freq-up"><span class="freq-score"></span><span class="freq-arrow">⬆️</span></button>
                         </header>
                         
                         <div class="card-body">
                             <div class="phrase" id="frontDisplay">Loading...</div>
                         </div>
 
-                        <footer class="card-footer">
-                            <button class="audio-btn">🔊</button>
-                        </footer>
                     </div>
                 </div>
 
                 <div class="card-face card-back">
                     <div class="card-grid">
                         <header class="card-header">
-                            <button class="freq-btn freq-down"><span class="freq-arrow">⬇️</span><span class="freq-score"></span></button>
                             <span id="backLabel" class="label">BACK</span>
-                            <button class="freq-btn freq-up"><span class="freq-score"></span><span class="freq-arrow">⬆️</span></button>
                         </header>
 
                         <div class="card-body">
                             <div class="phrase" id="backDisplay">...</div>
                         </div>
 
-                        <footer class="card-footer">
-                            <button class="audio-btn">🔊</button>
-                        </footer>
                     </div>
                 </div>
 
+            </div>
+            <div class="card-controls">
+                <button class="audio-btn" id="audioBtn">🔊</button>
+                <button class="freq-btn freq-down" id="freqDown">⬇️</button>
+                <button class="freq-btn freq-up" id="freqUp">⬆️</button>
+                <div class="card-score" id="cardScore">–</div>
             </div>
         </div>
         <div id="nextZone" class="nav-zone"></div>

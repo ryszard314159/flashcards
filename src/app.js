@@ -392,6 +392,10 @@ function init() {
         // srsFactorInput: document.getElementById('srsFactor'),
         // srsFactorVal: document.getElementById('srsFactorVal'),
         tempInput: document.getElementById('tempInput'),
+        audioBtn: document.getElementById('audioBtn'),
+        cardScore: document.getElementById('cardScore'),
+        freqDown: document.getElementById('freqDown'),
+        freqUp: document.getElementById('freqUp'),
         versionTag: document.getElementById('versionTag'),
     };
 
@@ -514,6 +518,9 @@ function updateNextZoneModeIcon() {
     ui.nextZone.classList.toggle('mode-sequential', !isWeighted);
     ui.nextZone.textContent = isWeighted ? '🔀' : '>';
     ui.nextZone.setAttribute('aria-label', isWeighted ? 'Shuffle mode' : 'Next mode');
+    if (ui.freqDown) ui.freqDown.style.visibility = isWeighted ? '' : 'hidden';
+    if (ui.freqUp)   ui.freqUp.style.visibility   = isWeighted ? '' : 'hidden';
+    if (ui.cardScore) ui.cardScore.style.visibility = isWeighted ? '' : 'hidden';
     if (DEBUG) {
         console.log('[nextZone] icon sync', {
             mode: state.settings.selectionMode,
@@ -1582,18 +1589,10 @@ function setupCardListeners() {
         handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target, false);
     }, { passive: true });
 
-    // --- Button Click Listener ---
-    // This exclusively handles buttons and prevents them from triggering the flip
-    ui.cardInner.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-
-        e.stopPropagation();
-
-        if (btn.classList.contains('freq-up')) handleFrequencyChange(1);
-        if (btn.classList.contains('freq-down')) handleFrequencyChange(-1);
-        if (btn.classList.contains('audio-btn')) playAudio();
-    });
+    // --- Control Button Listeners (outside flip zone, direct bindings) ---
+    ui.freqDown?.addEventListener('click', () => handleFrequencyChange(-1));
+    ui.freqUp?.addEventListener('click', () => handleFrequencyChange(1));
+    ui.audioBtn?.addEventListener('click', () => playAudio());
 
     ui.cardInner.dataset.initialized = 'true';
 }
@@ -1655,15 +1654,11 @@ function handleFrequencyChange(change) {
 
     save(KEYS.DECK, state.masterDeck);
     provideVisualFeedback(change > 0 ? 'up' : 'down');
-
-    const cls = change > 0 ? '.freq-up' : '.freq-down';
-    ui.cardInner.querySelectorAll(cls).forEach(b => {
-        const scoreSpan = b.querySelector('.freq-score');
-        if (scoreSpan) {
-            scoreSpan.textContent = card.score;
-            setTimeout(() => { scoreSpan.textContent = ''; }, 1200);
-        }
-    });
+    if (ui.cardScore) {
+        ui.cardScore.textContent = `Score: ${card.score}`;
+        ui.cardScore.classList.add('score-flash');
+        setTimeout(() => ui.cardScore.classList.remove('score-flash'), 1200);
+    }
 }
 
 function handleSearch(query) {
@@ -1815,6 +1810,7 @@ function updateUI() {
     ui.frontDisplay.textContent = card.frontText;
     ui.backDisplay.textContent = card.backText;
     ui.counter.textContent = `${state.currentCardIndex + 1} / ${deck.length}`;
+    if (ui.cardScore) ui.cardScore.textContent = `Score: ${card.score}`;
 }
 
 function syncSettingsToUI() {
@@ -1840,7 +1836,7 @@ function updateStateFromUI() {
     state.settings.historySize = Math.max(HISTORY_SIZE.min, Math.min(HISTORY_SIZE.max, parseInt(ui.historySize?.value) || 0));
     state.settings.temperature = parseFloat(ui.tempInput.value);
     state.settings.speechRate = parseFloat(ui.speechRateInput.value);
-    state.settings.selectionMode = ui.modeSelect?.value || 'weighted';
+    state.settings.selectionMode = ui.modeSelect?.value || 'sequential';
     state.settings.autoPlayFrontOnFlip = Boolean(ui.autoPlayFrontOnFlip.checked);
     state.settings.autoPlayBackOnFlip = Boolean(ui.autoPlayBackOnFlip.checked);
     state.settings.frontVoice = normalizeVoiceSpec(ui.frontVoiceSelect?.value) || AUTO_VOICE_VALUE;

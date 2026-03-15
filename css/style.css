@@ -103,11 +103,14 @@ body {
     position: relative;
     background: var(--bg-card);
     perspective: 1000px;
+    display: flex;
+    flex-direction: column;
 }
 
 .card-inner {
     width: 100%;
-    height: 100%;
+    flex-grow: 1;
+    min-height: 0;
     position: relative;
     transform-style: preserve-3d;
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -135,11 +138,11 @@ body {
 }
 
 .card-header {
-    height: 4rem;
+    height: 3.5rem;
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 0 1rem;
     background: #fafafa;
     border-bottom: 1px solid var(--color-smoke);
@@ -147,29 +150,17 @@ body {
 
 .label { font-weight: bold; color: #666; font-size: 0.8rem; letter-spacing: 1px; }
 .freq-btn { 
-    height: 2.5rem; 
-    min-width: 2.5rem;
+    width: 2.4rem;
+    height: 2.4rem;
     border-radius: 5px;
-    /* border: 1px solid var(--color-smoke); */
     border: transparent;
     background: transparent;
     cursor: pointer;
-    /* MODIFICATIONS */
-    font-size: 1.5rem;         /* Makes the arrows larger */
-    display: inline-flex;     /* Helps with centering */
-    align-items: center;      /* Vertical center */
-    justify-content: center;   /* Horizontal center */
+    font-size: 1.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
-    gap: 0.2rem;
-    padding: 0 0.3rem;
-}
-.freq-btn .freq-arrow { flex-shrink: 0; }
-.freq-btn .freq-score {
-    font-size: 1rem;
-    width: 1.8rem;
-    flex-shrink: 0;
-    text-align: center;
-    overflow: hidden;
 }
 
 .card-body {
@@ -191,17 +182,37 @@ body {
     -webkit-user-select: text;
 }
 
-.card-footer {
-    height: 5rem;
+.audio-btn { font-size: 2rem; border: none; background: none; cursor: pointer; }
+
+.card-controls {
     flex-shrink: 0;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
     align-items: center;
-    justify-content: center;
+    padding: 0.2rem 0.25rem;
     background: #fafafa;
     border-top: 1px solid var(--color-smoke);
 }
-
-.audio-btn { font-size: 2.5rem; border: none; background: none; cursor: pointer; }
+.card-controls .audio-btn { grid-column: 2; grid-row: 1; justify-self: center; }
+.card-controls .freq-down  { grid-column: 1; grid-row: 1 / span 2; align-self: center; justify-self: start; }
+.card-controls .freq-up    { grid-column: 3; grid-row: 1 / span 2; align-self: center; justify-self: end; }
+.card-score {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 0.8rem;
+    color: #999;
+    letter-spacing: 0.5px;
+    min-height: 1.1rem;
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.card-score.score-flash {
+    color: var(--color-ocean);
+    font-weight: bold;
+}
 
 /* --- 5. APP FOOTER (Fixed Height) --- */
 .app-footer {
