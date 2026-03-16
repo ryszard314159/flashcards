@@ -878,7 +878,12 @@ function setSelectionMode(mode, { persist = true } = {}) {
         ui.modeSelect.value = mode;
     }
     updateNextZoneModeIcon();
-    applySessionLogic();
+    const activeSearch = ui.searchBar?.value?.trim() || '';
+    if (activeSearch) {
+        handleSearch(activeSearch);
+    } else {
+        applySessionLogic();
+    }
     if (persist) {
         save(KEYS.SETTINGS, state.settings);
     }
