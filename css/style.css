@@ -517,6 +517,7 @@ body {
     box-shadow: 0 8px 40px rgba(0,0,0,0.55);
     text-align: center;
     max-width: min(90vw, 420px);
+    white-space: pre-line;
 }
 
 .mode-toast--centered.is-visible {

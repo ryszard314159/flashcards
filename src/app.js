@@ -916,8 +916,10 @@ function showToastMessage(text, timeoutMs = 3000, { centered = false } = {}) {
 }
 
 function showModeToast(mode) {
-    const text = mode === 'weighted' ? 'Mode: SRS (Shuffle)' : 'Mode: Linear (Next)';
-    showToastMessage(text, 1200);
+    const text = mode === 'weighted'
+        ? 'Changing card selection mode to\nSpaced Repetition System (SRS)'
+        : 'Changing card selection mode to\nLinear (Sequential)';
+    showToastMessage(text, 2200, { centered: true });
 }
 
 function selectWholePhrase(phraseElement) {
@@ -1184,7 +1186,11 @@ function setupEventListeners() {
 
     ui.prevZone.addEventListener('click', (e) => {
         e.stopPropagation();
-        navigateBack();
+        if (state.settings.selectionMode === 'sequential') {
+            navigate(-1);
+        } else {
+            navigateBack();
+        }
     });
 
     // File Import
@@ -1722,7 +1728,7 @@ function navigate(direction) {
     ui.cardInner?.classList.remove('is-flipped');
     const deckSize = state.currentSessionDeck.length;
     if (deckSize === 0) return;
-    if (direction > 0) pushToHistory(state.currentCardIndex);
+    if (direction > 0 && state.settings.selectionMode !== 'sequential') pushToHistory(state.currentCardIndex);
     state.currentCardIndex = (state.currentCardIndex + direction + deckSize) % deckSize;
     setTimeout(updateUI, 150);
 }
