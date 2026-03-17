@@ -24,6 +24,7 @@ const NEXT_ZONE_LONG_PRESS_MS = 500;
 let modeToastTimer = null;
 const NEXT_ZONE_DEBUG_ALERT = false;
 const IS_LOCAL_DEVELOPMENT = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+let isSpeechPrimed = false;
 
 // Speech Synthesis Cache
 let availableVoices = [];
@@ -256,6 +257,7 @@ function init() {
 
     // Load voices for speech synthesis
     loadAvailableVoices();
+    primeSpeechOnFirstGesture();
 
     // 1. Register service worker
     if ('serviceWorker' in navigator) {
@@ -440,6 +442,44 @@ function init() {
     setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
     }, 50);
+}
+
+function primeSpeechOnFirstGesture() {
+    if (!window.speechSynthesis || isSpeechPrimed) {
+        return;
+    }
+
+    const prime = () => {
+        if (isSpeechPrimed) {
+            return;
+        }
+
+        isSpeechPrimed = true;
+
+        try {
+            const warmupUtterance = new SpeechSynthesisUtterance(' ');
+            warmupUtterance.volume = 0;
+            warmupUtterance.rate = 1;
+            warmupUtterance.pitch = 1;
+
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(warmupUtterance);
+            // Cancel quickly so this unlock does not produce audible output.
+            setTimeout(() => window.speechSynthesis.cancel(), 0);
+        } catch (error) {
+            if (DEBUG) {
+                console.warn('[Speech] Prime failed:', error);
+            }
+        }
+
+        document.removeEventListener('pointerdown', prime, true);
+        document.removeEventListener('touchstart', prime, true);
+        document.removeEventListener('click', prime, true);
+    };
+
+    document.addEventListener('pointerdown', prime, true);
+    document.addEventListener('touchstart', prime, true);
+    document.addEventListener('click', prime, true);
 }
 
 // TODO: remove it
@@ -1973,6 +2013,11 @@ function playAudio() {
     const card = state.currentSessionDeck[state.currentCardIndex];
     if (!card) return;
 
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+        showToastMessage('Audio is not available in this browser context.', 2000, { centered: true });
+        return;
+    }
+
     // Stop any existing speech
     window.speechSynthesis.cancel();
 
@@ -1981,6 +2026,7 @@ function playAudio() {
     const voiceSpec = resolveVoiceSpecForSide(card, state.isFlipped);
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    let hasRetriedWithDefaultVoice = false;
 
     let selectedVoice = null;
     let languageCode = null;
@@ -2038,6 +2084,46 @@ function playAudio() {
         });
     } else {
         console.log(`Speaking (${state.isFlipped ? 'Back' : 'Front'}): ${textToSpeak}`);
+    }
+
+    utterance.onerror = (event) => {
+        const errorCode = event?.error || 'unknown';
+        if (DEBUG) {
+            console.error('[Speech] onerror:', errorCode, event);
+        }
+
+        // Pixel/Chrome can fail with selected lang/voice on local/LAN dev URLs.
+        // Retry once using the browser default voice and language before failing.
+        if (!hasRetriedWithDefaultVoice) {
+            hasRetriedWithDefaultVoice = true;
+            try {
+                const fallback = new SpeechSynthesisUtterance(textToSpeak);
+                fallback.rate = utterance.rate;
+                fallback.pitch = utterance.pitch;
+                fallback.onerror = (fallbackEvent) => {
+                    if (DEBUG) {
+                        console.error('[Speech] fallback onerror:', fallbackEvent?.error || fallbackEvent);
+                    }
+                    showToastMessage('Audio unavailable right now.', 1800, { centered: true });
+                };
+
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume();
+                window.speechSynthesis.speak(fallback);
+                return;
+            } catch (fallbackError) {
+                if (DEBUG) {
+                    console.error('[Speech] fallback throw:', fallbackError);
+                }
+            }
+        }
+    };
+
+    // Some mobile engines get stuck in paused state after backgrounding.
+    try {
+        window.speechSynthesis.resume();
+    } catch {
+        // ignore
     }
 
     window.speechSynthesis.speak(utterance);
