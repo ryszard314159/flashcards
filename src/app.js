@@ -4,254 +4,62 @@
 import { CONFIG, REPO_CONFIG, DEBUG } from './config.js';
 import { deckReader, save, load, KEYS } from './io.js';
 import { fetchRemoteDeckList, fetchTextFromUrl, processDeckText } from './io.js';
+import {
+    AUTO_VOICE_VALUE,
+    normalizeVoiceLocale,
+    normalizeVoiceSpec,
+    parseVoiceSpec,
+    filterVoiceSpecs,
+    buildVoiceSpecLabel,
+    selectVoiceBySpec,
+    selectBestVoiceForLanguage,
+    detectLanguageFromCard,
+    loadAvailableVoices,
+    renderVoiceOptions,
+    _resetVoiceCache,
+} from './speech.js';
+import {
+    updateProbabilitiesForSession,
+    pushToHistoryBuffer,
+    navigateBackInSession,
+    navigateInSession,
+    drawCardFromSession,
+    applySessionLogicToState,
+    getCardOrdinalInMasterDeck as getCardOrdinalFromState,
+} from './session.js';
+import {
+    showToastMessage,
+    showModeToast,
+    updateUIRender,
+    refreshCategoryUIRender,
+    provideVisualFeedbackRender,
+} from './ui.js';
 import { SPEECH_RATE, state } from './state.js';
 import { SCORE_SETTINGS } from './state.js';
 import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
 import { HISTORY_SIZE } from './state.js';
 import { pickWeightedCard, generateSessionDeck, calculateProbabilities, filterCards, flipDeck, applyScoreChange } from './srs.js';
+import {
+    markUpdateAvailable,
+    hasNewerRemoteVersion,
+    activateWaitingWorkerImmediately,
+    bindVersionTagUpdateHandler,
+    getIsRefreshing,
+    setIsRefreshing,
+    getHasPendingUpdate,
+} from './swUpdate.js';
 
 let ui = {};
-let isRefreshing = false; // Global flag to prevent double-reload
-let hasPendingUpdate = false;
-let isActivatingUpdate = false;
 let isNormalizingPhraseSelection = false;
 let swRegistration = null;
 let refreshUpdateStatusFn = null;
 let nextZoneLongPressTimer = null;
 let nextZoneLongPressTriggered = false;
 const NEXT_ZONE_LONG_PRESS_MS = 500;
-let modeToastTimer = null;
 const NEXT_ZONE_DEBUG_ALERT = false;
 const IS_LOCAL_DEVELOPMENT = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
 let isSpeechPrimed = false;
-
-// Speech Synthesis Cache
-let availableVoices = [];
-let voicesLoaded = false;
-function _resetVoiceCache() { availableVoices = []; voicesLoaded = false; }
-let voiceRefreshTimer = null;
-const AUTO_VOICE_VALUE = '';
-const AUTO_VOICE_LABEL = 'Auto-detect / deck directive';
-const VOICE_REFRESH_INTERVAL_MS = 400;
-const MAX_VOICE_REFRESH_ATTEMPTS = 12;
-
-function normalizeVoiceLocale(locale) {
-    if (typeof locale !== 'string') {
-        return '';
-    }
-
-    const trimmed = locale.trim();
-    if (!trimmed) {
-        return '';
-    }
-
-    const parts = trimmed.replace(/_/g, '-').split('-').filter(Boolean);
-    if (parts.length === 0) {
-        return '';
-    }
-
-    return parts
-        .map((part, index) => {
-            if (index === 0) {
-                return part.toLowerCase();
-            }
-            // Script subtags are 4 letters: title-case (e.g. Hans, Latn)
-            if (part.length === 4 && /^[A-Za-z]+$/.test(part)) {
-                return part[0].toUpperCase() + part.slice(1).toLowerCase();
-            }
-            // Region (2 letters) or extlang/variant (2-3 alphanumeric): uppercase
-            if (part.length === 2 || part.length === 3) {
-                return part.toUpperCase();
-            }
-            return part;
-        })
-        .join('-');
-}
-
-function normalizeVoiceSpec(voiceSpec) {
-    if (typeof voiceSpec !== 'string') {
-        return '';
-    }
-
-    const trimmed = voiceSpec.trim();
-    if (!trimmed) {
-        return '';
-    }
-
-    const parsed = parseVoiceSpec(trimmed);
-    if (!parsed) {
-        return trimmed;
-    }
-
-    return `${parsed.name} (${parsed.lang})`;
-}
-
-function markUpdateAvailable() {
-    hasPendingUpdate = true;
-    if (ui.versionTag) {
-        ui.versionTag.classList.add('is-update-available');
-    }
-}
-
-async function fetchLatestVersionFromNetwork() {
-    const response = await fetch(`./src/config.js?version-check=${Date.now()}`, {
-        cache: 'no-store'
-    });
-
-    if (!response.ok) {
-        throw new Error(`Version check failed with status ${response.status}`);
-    }
-
-    const source = await response.text();
-    const match = source.match(/VERSION:\s*"(\d{4}-\d{2}-\d{2}\.\d{4})"/);
-
-    if (!match) {
-        throw new Error('Version check could not parse VERSION from config.js');
-    }
-
-    return match[1];
-}
-
-async function hasNewerRemoteVersion() {
-    try {
-        const latestVersion = await fetchLatestVersionFromNetwork();
-        return latestVersion > CONFIG.VERSION;
-    } catch {
-        return false;
-    }
-}
-
-function waitForWaitingWorker(reg, timeoutMs = 8000) {
-    if (reg.waiting) {
-        return Promise.resolve(reg.waiting);
-    }
-
-    return new Promise((resolve) => {
-        let resolved = false;
-
-        const finish = (worker) => {
-            if (resolved) {
-                return;
-            }
-            resolved = true;
-            clearTimeout(timeoutId);
-            resolve(worker || null);
-        };
-
-        const tryResolveWaiting = () => {
-            if (reg.waiting) {
-                finish(reg.waiting);
-                return true;
-            }
-            return false;
-        };
-
-        const attachInstallingWatcher = (worker) => {
-            if (!worker) {
-                return;
-            }
-            worker.addEventListener('statechange', () => {
-                if (worker.state === 'installed') {
-                    tryResolveWaiting();
-                }
-            });
-        };
-
-        if (tryResolveWaiting()) {
-            return;
-        }
-
-        attachInstallingWatcher(reg.installing);
-
-        const onUpdateFound = () => {
-            attachInstallingWatcher(reg.installing);
-            tryResolveWaiting();
-        };
-
-        reg.addEventListener('updatefound', onUpdateFound, { once: true });
-
-        const timeoutId = setTimeout(() => {
-            finish(reg.waiting || null);
-        }, timeoutMs);
-
-        reg.update().catch(() => {
-            finish(reg.waiting || null);
-        });
-    });
-}
-
-async function activatePendingUpdateFromVersionTag(reg, versionTag, options = {}) {
-    if (!versionTag?.classList?.contains('is-update-available')) {
-        return false;
-    }
-
-    if (isActivatingUpdate) {
-        return false;
-    }
-
-    isActivatingUpdate = true;
-    const previousCursor = versionTag.style.cursor;
-    versionTag.style.cursor = 'progress';
-
-    const worker = await waitForWaitingWorker(reg);
-    if (worker) {
-        worker.postMessage({ type: 'SKIP_WAITING' });
-
-        const schedule = options.schedule || setTimeout;
-        const reload = options.reload || (() => window.location.reload());
-
-        // Fallback: if oncontrollerchange doesn't fire, reload after a delay.
-        schedule(() => {
-            if (!isRefreshing) {
-                isRefreshing = true;
-                reload();
-            }
-        }, 2000);
-    } else if (typeof options.onNoWaitingWorker === 'function') {
-        await options.onNoWaitingWorker();
-    }
-
-    if (!isRefreshing) {
-        isActivatingUpdate = false;
-        versionTag.style.cursor = previousCursor || 'pointer';
-    }
-
-    return Boolean(worker);
-}
-
-function activateWaitingWorkerImmediately(reg) {
-    if (!reg?.waiting) {
-        return false;
-    }
-
-    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    return true;
-}
-
-function bindVersionTagUpdateHandler() {
-    if (!ui.versionTag) {
-        return;
-    }
-
-    ui.versionTag.style.cursor = 'pointer';
-    ui.versionTag.onclick = async (e) => {
-        if (!ui.versionTag.classList.contains('is-update-available')) {
-            return; // Only allow click if update is available
-        }
-
-        if (!swRegistration) {
-            return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        await activatePendingUpdateFromVersionTag(swRegistration, ui.versionTag, {
-            onNoWaitingWorker: () => refreshUpdateStatusFn?.(),
-        });
-    };
-}
 
 function init() {
 
@@ -267,8 +75,8 @@ function init() {
         .then(reg => {
             swRegistration = reg;
             navigator.serviceWorker.oncontrollerchange = () => {
-                if (!isRefreshing) {
-                    isRefreshing = true;
+                if (!getIsRefreshing()) {
+                    setIsRefreshing(true);
                     window.location.reload();
                 }
             };
@@ -278,7 +86,7 @@ function init() {
                     if (IS_LOCAL_DEVELOPMENT) {
                         return activateWaitingWorkerImmediately(reg);
                     }
-                    markUpdateAvailable();
+                    markUpdateAvailable(ui);
                     return true;
                 }
                 return false;
@@ -294,7 +102,7 @@ function init() {
                             worker.postMessage({ type: 'SKIP_WAITING' });
                             return;
                         }
-                        markUpdateAvailable();
+                        markUpdateAvailable(ui);
                     }
                 });
             };
@@ -303,7 +111,7 @@ function init() {
                 const updateCheck = reg.update().catch(() => null);
                 const remoteVersionCheck = hasNewerRemoteVersion().then((hasRemoteUpdate) => {
                     if (hasRemoteUpdate) {
-                        markUpdateAvailable();
+                        markUpdateAvailable(ui);
                     }
                 });
 
@@ -325,7 +133,7 @@ function init() {
             // 1. Pre-check: Does a worker exist already?
             checkWaitingWorker();
 
-            bindVersionTagUpdateHandler();
+            bindVersionTagUpdateHandler(ui, swRegistration, refreshUpdateStatusFn);
 
             const refreshWhenVisible = () => {
                 if (document.visibilityState !== 'visible') {
@@ -402,9 +210,9 @@ function init() {
     };
 
     assertRequiredUI();
-    bindVersionTagUpdateHandler();
+    bindVersionTagUpdateHandler(ui, swRegistration, refreshUpdateStatusFn);
     ui.versionTag.textContent = `Version: ${CONFIG.VERSION}`;
-    if (hasPendingUpdate) {
+    if (getHasPendingUpdate()) {
         ui.versionTag.classList.add('is-update-available');
     }
 
@@ -583,119 +391,8 @@ function debugNextZone(message, context = null) {
  * Load available voices from the Web Speech API
  * Voices are loaded asynchronously on some browsers
  */
-function loadAvailableVoices() {
-    if (!window.speechSynthesis?.getVoices) {
-        syncVoiceSelectors();
-        return;
-    }
-
-    const updateVoiceList = (attempt = 0) => {
-        availableVoices = window.speechSynthesis.getVoices();
-        if (availableVoices.length > 0) {
-            voicesLoaded = true;
-            if (voiceRefreshTimer) {
-                clearTimeout(voiceRefreshTimer);
-                voiceRefreshTimer = null;
-            }
-            if (DEBUG) {
-                console.log(`[Speech] Loaded ${availableVoices.length} voices:`,
-                    availableVoices.map(v => `${v.name} (${v.lang})`).join(', '));
-            }
-        } else if (attempt < MAX_VOICE_REFRESH_ATTEMPTS) {
-            voiceRefreshTimer = setTimeout(() => updateVoiceList(attempt + 1), VOICE_REFRESH_INTERVAL_MS);
-        }
-
-        syncVoiceSelectors();
-    };
-
-    if (!voicesLoaded && voiceRefreshTimer) {
-        clearTimeout(voiceRefreshTimer);
-        voiceRefreshTimer = null;
-    }
-
-    updateVoiceList();
-    window.speechSynthesis.onvoiceschanged = () => updateVoiceList();
-}
-
 function getVoiceSettingKey(isBack) {
     return isBack ? 'backVoice' : 'frontVoice';
-}
-
-function buildVoiceSpecLabel(voice) {
-    return `${voice.name} (${normalizeVoiceLocale(voice.lang)})`;
-}
-
-function getVoiceSpecCatalog() {
-    const seen = new Set();
-
-    return availableVoices
-        .filter(voice => voice?.name && voice?.lang)
-        .map(buildVoiceSpecLabel)
-        .filter((spec) => {
-            if (seen.has(spec)) {
-                return false;
-            }
-            seen.add(spec);
-            return true;
-        })
-        .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }));
-}
-
-function filterVoiceSpecs(specs, filterText = '') {
-    const normalizedFilter = normalizeVoiceSpec(filterText).toLowerCase();
-
-    if (!normalizedFilter) {
-        return specs;
-    }
-
-    return specs.filter((spec) => normalizeVoiceSpec(spec).toLowerCase().includes(normalizedFilter));
-}
-
-function renderVoiceOptions(selectElement, filterText, selectedValue = AUTO_VOICE_VALUE) {
-    if (!selectElement) {
-        return;
-    }
-
-    const allSpecs = getVoiceSpecCatalog();
-    const filteredSpecs = filterVoiceSpecs(allSpecs, filterText);
-    const specsToRender = [...filteredSpecs];
-    const normalizedSelectedValue = normalizeVoiceSpec(selectedValue);
-
-    if (normalizedSelectedValue && !specsToRender.includes(normalizedSelectedValue)) {
-        specsToRender.unshift(normalizedSelectedValue);
-    }
-
-    selectElement.innerHTML = '';
-
-    const autoOption = document.createElement('option');
-    autoOption.value = AUTO_VOICE_VALUE;
-    autoOption.textContent = AUTO_VOICE_LABEL;
-    selectElement.appendChild(autoOption);
-
-    if (allSpecs.length === 0) {
-        const loadingOption = document.createElement('option');
-        loadingOption.value = '__voice_loading__';
-        loadingOption.textContent = window.speechSynthesis?.getVoices
-            ? 'Loading system voices...'
-            : 'Speech voices are not supported in this browser';
-        loadingOption.disabled = true;
-        selectElement.appendChild(loadingOption);
-    } else if (specsToRender.length === 0) {
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '__no_match__';
-        emptyOption.textContent = 'No matching voices';
-        emptyOption.disabled = true;
-        selectElement.appendChild(emptyOption);
-    } else {
-        specsToRender.forEach((spec) => {
-            const option = document.createElement('option');
-            option.value = spec;
-            option.textContent = spec;
-            selectElement.appendChild(option);
-        });
-    }
-
-    selectElement.value = normalizedSelectedValue || AUTO_VOICE_VALUE;
 }
 
 function syncVoiceSelectors() {
@@ -715,169 +412,6 @@ function updateVoiceSetting(isBack, value) {
  * Detect the language of a card based on its label/metadata
  * Returns a BCP-47 language code like 'en-US', 'fr-FR', 'de-DE'.
  */
-function getDefaultSpeechLang() {
-    const browserLang = (navigator.language || '').trim();
-    return browserLang || 'en-US';
-}
-
-function detectLanguageFromCard(card, { isBack = false, textOverride = '' } = {}) {
-    if (!card) return getDefaultSpeechLang();
-
-    const activeLabel = ((isBack ? card.backLabel : card.frontLabel) || '').toLowerCase();
-    const oppositeLabel = ((isBack ? card.frontLabel : card.backLabel) || '').toLowerCase();
-    const activeText = (textOverride || (isBack ? card.backText : card.frontText) || '');
-
-    // 1) Explicit language metadata if present on cards
-    const explicitLang = isBack ? card.backLang : card.frontLang;
-    if (typeof explicitLang === 'string' && explicitLang.trim()) {
-        return explicitLang.trim();
-    }
-
-    // 2) Generic label hints
-    const labelText = `${activeLabel} ${oppositeLabel}`;
-    const labelHints = [
-        { keywords: ['english'], lang: 'en-US' },
-        { keywords: ['french', 'france'], lang: 'fr-FR' },
-        { keywords: ['german'], lang: 'de-DE' },
-        { keywords: ['italian'], lang: 'it-IT' },
-        { keywords: ['portuguese'], lang: 'pt-BR' },
-        { keywords: ['japanese'], lang: 'ja-JP' },
-        { keywords: ['chinese', 'mandarin'], lang: 'zh-CN' },
-        { keywords: ['spanish'], lang: 'es-ES' }
-    ];
-    for (const hint of labelHints) {
-        if (hint.keywords.some(k => labelText.includes(k))) {
-            return hint.lang;
-        }
-    }
-
-    // 3) Script-based hints for unlabeled content
-    if (/[\u3040-\u30ff]/.test(activeText)) return 'ja-JP';
-    if (/[\u4e00-\u9fff]/.test(activeText)) return 'zh-CN';
-    if (/[\u0400-\u04FF]/.test(activeText)) return 'ru-RU';
-    if (/[\u0600-\u06FF]/.test(activeText)) return 'ar-SA';
-    if (/[\u0900-\u097F]/.test(activeText)) return 'hi-IN';
-
-    return getDefaultSpeechLang();
-}
-
-/**
- * Parse a voice specification string like "Voice Name (en-US)"
- * Returns { name: "Voice Name", lang: "en-US" } or null if invalid
- */
-function parseVoiceSpec(voiceSpec) {
-    if (!voiceSpec) return null;
-
-    const match = voiceSpec.match(/^(.+?)\s*\(([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*)\)$/);
-    if (!match) return null;
-
-    return {
-        name: match[1].trim(),
-        lang: normalizeVoiceLocale(match[2])
-    };
-}
-
-/**
- * Find a voice by name and language, or by exact name match
- * Priority: Exact name match > Language match > Fallback
- *
- * NOTE: Voice names are platform-specific (e.g. "Google US English" on desktop
- * Chrome vs "English United States" on Pixel Chrome). Cross-device portability
- * of saved voice settings is best-effort: when an exact name match fails, the
- * fallback chain matches by language to preserve correct TTS locale.
- */
-function selectVoiceBySpec(voiceSpec) {
-    if (!window.speechSynthesis || !voiceSpec) return null;
-
-    // Ensure voices are loaded
-    if (availableVoices.length === 0) {
-        availableVoices = window.speechSynthesis.getVoices();
-    }
-
-    // Parse the spec string
-    const spec = parseVoiceSpec(voiceSpec);
-    if (!spec) {
-        if (DEBUG) console.warn(`[Speech] Invalid voice spec: "${voiceSpec}"`);
-        return null;
-    }
-
-    const { name, lang } = spec;
-
-    // Try to find exact name match first
-    let exactMatch = availableVoices.find(v => v.name === name && normalizeVoiceLocale(v.lang) === lang);
-    if (exactMatch) {
-        if (DEBUG) console.log(`[Speech] Found exact voice: ${name} (${lang})`);
-        return exactMatch;
-    }
-
-    // Try name match with any language
-    let nameMatch = availableVoices.find(v => v.name === name);
-    if (nameMatch) {
-        if (DEBUG) console.log(`[Speech] Found voice by name (different lang): ${nameMatch.name} (${nameMatch.lang})`);
-        return nameMatch;
-    }
-
-    // Try language match with the requested lang
-    let langMatch = availableVoices.find(v => normalizeVoiceLocale(v.lang) === lang);
-    if (langMatch) {
-        if (DEBUG) console.log(`[Speech] Found voice by language: ${langMatch.name} (${lang})`);
-        return langMatch;
-    }
-
-    // Try same base language (e.g. es-MX when es-ES was requested)
-    const baseLang = lang.split('-')[0];
-    const sameBaseLang = availableVoices.find((v) => {
-        const normalizedLang = normalizeVoiceLocale(v.lang);
-        return normalizedLang && normalizedLang.startsWith(baseLang + '-');
-    });
-    if (sameBaseLang) {
-        if (DEBUG) console.log(`[Speech] Found voice by base language: ${sameBaseLang.name} (${sameBaseLang.lang})`);
-        return sameBaseLang;
-    }
-
-    // No match found
-    if (DEBUG) console.warn(`[Speech] Voice not found: ${name} (${lang})`);
-    return null;
-}
-
-/**
- * Select the best voice for a given language code (fallback auto-detection)
- * Prioritizes native speakers and high-quality voices
- */
-function selectBestVoiceForLanguage(langCode) {
-    if (!window.speechSynthesis) return null;
-
-    // Ensure voices are loaded
-    if (availableVoices.length === 0) {
-        availableVoices = window.speechSynthesis.getVoices();
-    }
-
-    const normalizedLangCode = normalizeVoiceLocale(langCode);
-    const baseLang = normalizedLangCode.split('-')[0]; // Extract base language from locale code
-
-    // Priority: Exact match > Same language > Fallback
-    let exactMatch = availableVoices.find(v => normalizeVoiceLocale(v.lang) === normalizedLangCode);
-    if (exactMatch) return exactMatch;
-
-    // Find voices for the same language (different region)
-    let sameLanguageVoices = availableVoices.filter((v) => normalizeVoiceLocale(v.lang).startsWith(baseLang + '-'));
-
-    // Prioritize: Google voices > higher quality > first available
-    if (sameLanguageVoices.length > 0) {
-        // Try to find Google Cloud voices first (they're usually higher quality)
-        let googleVoice = sameLanguageVoices.find(v => v.name.toLowerCase().includes('google'));
-        if (googleVoice) return googleVoice;
-
-        // Otherwise return the first available voice for this language
-        return sameLanguageVoices[0];
-    }
-
-    // If no matching language voice exists, return null and let utterance.lang guide engine defaulting.
-    if (DEBUG) {
-        console.warn(`[Speech] No matching voice found for ${langCode}; using browser default voice for that locale.`);
-    }
-    return null;
-}
 
 function resolveVoiceSpecForSide(card, isBack) {
     const settingsVoice = state.settings?.[getVoiceSettingKey(isBack)];
@@ -938,33 +472,6 @@ function toggleSelectionModeFromNextZone() {
         alert(`nextZone long-press -> ${nextMode}`);
     }
     console.log(`Selection mode toggled via long press: ${nextMode}`);
-}
-
-function showToastMessage(text, timeoutMs = 3000, { centered = false } = {}) {
-    let toast = document.getElementById('modeToast');
-
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'modeToast';
-        toast.className = 'mode-toast';
-        document.body.appendChild(toast);
-    }
-
-    toast.textContent = text;
-    toast.classList.toggle('mode-toast--centered', centered);
-    toast.classList.add('is-visible');
-
-    clearTimeout(modeToastTimer);
-    modeToastTimer = setTimeout(() => {
-        toast.classList.remove('is-visible');
-    }, timeoutMs);
-}
-
-function showModeToast(mode) {
-    const text = mode === 'weighted'
-        ? 'Changing card selection mode to\nSpaced Repetition System (SRS)'
-        : 'Changing card selection mode to\nLinear (Sequential)';
-    showToastMessage(text, 2200, { centered: true });
 }
 
 function selectWholePhrase(phraseElement) {
@@ -1761,162 +1268,41 @@ function handleSearch(query) {
 }
 
 function updateProbabilities() {
-    const pool = state.currentSessionDeck;
-    const T = state.settings.temperature;
-
-    // Assertions: Ensure the "Hand" and the "Environment" are valid
-    assert(Array.isArray(pool) && pool.length > 0, "Cannot calculate probabilities for an empty pool.");
-    assert(typeof T === 'number' && T >= 0.01, "Temperature must be a number >= 0.01", { T });
-
-    pool.forEach(card => assert(typeof card.score === 'number', "Pool card missing factor", card));
-
-    state.sessionProbabilities = calculateProbabilities(pool, T);
-    console.log("DEBUG: updateProbabilities: Updated probabilities for current session.",
-        { probabilities: state.sessionProbabilities });
-    state.calculateProbabilities = false;
+    updateProbabilitiesForSession(state, calculateProbabilities, assert);
+    console.log('DEBUG: updateProbabilities: Updated probabilities for current session.', {
+        probabilities: state.sessionProbabilities
+    });
 }
 
 function pushToHistory(cardIndex) {
-    const maxLen = state.settings.historySize || 0;
-    if (maxLen <= 0) return;
-    state.navigationHistory.push(cardIndex);
-    if (state.navigationHistory.length > maxLen) {
-        state.navigationHistory.shift();
-    }
+    pushToHistoryBuffer(state, cardIndex);
 }
 
 function navigateBack() {
-    state.isFlipped = false;
-    ui.cardInner?.classList.remove('is-flipped');
-    if (state.navigationHistory.length > 0) {
-        state.currentCardIndex = state.navigationHistory.pop();
-        setTimeout(updateUI, 150);
-    } else {
-        showToastMessage('No history yet', 1000);
-    }
+    navigateBackInSession(state, ui, updateUI, showToastMessage);
 }
 
 function navigate(direction) {
-    state.isFlipped = false;
-    ui.cardInner?.classList.remove('is-flipped');
-    const deckSize = state.currentSessionDeck.length;
-    if (deckSize === 0) return;
-    if (direction > 0 && state.settings.selectionMode !== 'sequential') pushToHistory(state.currentCardIndex);
-    state.currentCardIndex = (state.currentCardIndex + direction + deckSize) % deckSize;
-    setTimeout(updateUI, 150);
+    navigateInSession(state, ui, direction, updateUI, pushToHistory);
 }
 
 /**
  * Modified Navigation for Weighted Streaming
  */
 function drawCard() {
-    // 1. Visual Reset
-    state.isFlipped = false;
-    ui.cardInner?.classList.remove('is-flipped');
-
-    pushToHistory(state.currentCardIndex);
-
-    if (state.calculateProbabilities) {
-        updateProbabilities();
-    }
-
-    // 2. The Logic: Draw a weighted index from the CURRENT session pool
-    // We pass our current session deck into the weighted picker
-    const nextCard = pickWeightedCard(state.currentSessionDeck, state.settings.temperature);
-
-    // 3. Update the pointer so frequency buttons hit the right card
-    state.currentCardIndex = state.currentSessionDeck.indexOf(nextCard);
-
-    // 4. Animate and update
-    setTimeout(updateUI, 150);
+    drawCardFromSession(state, ui, pickWeightedCard, updateUI, pushToHistory, updateProbabilities);
 }
 
 function applySessionLogic() {
-
-    // 1. Safety check: If masterDeck is empty, we can't do anything
-    if (!state.masterDeck || state.masterDeck.length === 0) {
-        console.warn("applySessionLogic: masterDeck is empty.");
-        return;
-    }
-
-    // Ensure we have active categories; if not, default to all
-    if (!state.settings.activeCategories || state.settings.activeCategories.length === 0) {
-        state.settings.activeCategories = [...new Set(state.masterDeck.map(c => c.frontLabel))];
-    }
-
-    let filteredCards = state.masterDeck.filter(card =>
-        state.settings.activeCategories.includes(card.frontLabel)
-    );
-
-    if (filteredCards.length === 0) filteredCards = [...state.masterDeck];
-
-    // --- MINIMAL CHANGE START ---
-    // Instead of using filteredCards.length, use the setting from state
-    const requestedSize = state.settings.sessionSize || 0;
-
-    // If requestedSize is 0, we take the whole filtered deck,
-    // otherwise we cap it at the number of available cards.
-    const size = (requestedSize > 0) ? Math.min(requestedSize, filteredCards.length) : filteredCards.length;
-    // --- MINIMAL CHANGE END ---
-
-    const temp = state.settings.temperature;
-    assert(temp >= 0.01, "Temperature must be at least 0.01", { temp });
-
-    // Route to appropriate card selection mode
-    const mode = state.settings.selectionMode;
-    if (mode === 'weighted') {
-        state.currentSessionDeck = generateSessionDeck(filteredCards, size, temp);
-    } else if (mode === 'sequential') {
-        // Linear mode: take cards in original deck order
-        state.currentSessionDeck = filteredCards.slice(0, size);
-    } else {
-        // Fallback to weighted
-        state.currentSessionDeck = generateSessionDeck(filteredCards, size, temp);
-    }
-
-    state.currentCardIndex = 0;
-    state.navigationHistory = [];
-    updateUI();
+    applySessionLogicToState(state, generateSessionDeck, assert, updateUI);
 }
 
 function getCardOrdinalInMasterDeck(card) {
-    if (!card || !Array.isArray(state.masterDeck) || state.masterDeck.length === 0) {
-        return null;
-    }
-
-    // Fast path: in most flows session cards are object references from masterDeck.
-    const referenceIndex = state.masterDeck.indexOf(card);
-    if (referenceIndex !== -1) {
-        return referenceIndex + 1;
-    }
-
-    // Fallback for rehydrated/cloned objects.
-    if (card.id) {
-        const idIndex = state.masterDeck.findIndex((candidate) => candidate?.id === card.id);
-        if (idIndex !== -1) {
-            return idIndex + 1;
-        }
-    }
-
-    return null;
+    return getCardOrdinalFromState(state, card);
 }
 
 function updateUI() {
-    const deck = state.currentSessionDeck;
-    const card = deck[state.currentCardIndex];
-    if (!card) return;
-
-    ui.frontLabel.textContent = card.frontLabel;
-    ui.backLabel.textContent = card.backLabel;
-    ui.frontDisplay.textContent = card.frontText;
-    ui.backDisplay.textContent = card.backText;
-    const originalOrdinal = getCardOrdinalInMasterDeck(card);
-    const counterNumerator = originalOrdinal ?? (state.currentCardIndex + 1);
-    const counterDenominator = Array.isArray(state.masterDeck) && state.masterDeck.length > 0
-        ? state.masterDeck.length
-        : deck.length;
-    ui.counter.textContent = `${counterNumerator} / ${counterDenominator}`;
-    if (ui.cardScore) ui.cardScore.textContent = `Score: ${card.score}`;
+    updateUIRender(state, ui, getCardOrdinalInMasterDeck);
 }
 
 function syncSettingsToUI() {
@@ -1950,52 +1336,11 @@ function updateStateFromUI() {
 }
 
 function refreshCategoryUI() {
-    const allCategories = [...new Set(state.masterDeck.map(card => card.frontLabel))];
-    if (state.settings.activeCategories.length === 0) {
-        state.settings.activeCategories = [...allCategories];
-    }
-
-    ui.categoryList.innerHTML = '';
-    allCategories.forEach(cat => {
-        const isChecked = state.settings.activeCategories.includes(cat);
-        const item = document.createElement('div');
-        item.className = 'category-item';
-
-        const label = document.createElement('label');
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = cat;
-        checkbox.checked = isChecked;
-
-        const span = document.createElement('span');
-        span.textContent = cat;
-
-        label.appendChild(checkbox);
-        label.appendChild(span);
-        item.appendChild(label);
-
-        ui.categoryList.appendChild(item);
-    });
+    refreshCategoryUIRender(state, ui);
 }
 
 function provideVisualFeedback(type) {
-    const card = ui.cardInner;
-    if (!card) return;
-
-    // Remove existing classes to allow re-triggering
-    card.classList.remove('feedback-up', 'feedback-down');
-
-    // Force a reflow to restart the animation
-    void card.offsetWidth;
-
-    // Add the appropriate class
-    card.classList.add(type === 'up' ? 'feedback-up' : 'feedback-down');
-
-    // Optional: Auto-remove after animation ends (e.g., 500ms)
-    setTimeout(() => {
-        card.classList.remove('feedback-up', 'feedback-down');
-    }, 500);
+    provideVisualFeedbackRender(ui, type);
 }
 
 const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
@@ -2131,10 +1476,6 @@ function playAudio() {
 
 // Export small pure/update helpers for regression tests.
 export {
-    waitForWaitingWorker,
-    fetchLatestVersionFromNetwork,
-    hasNewerRemoteVersion,
-    activatePendingUpdateFromVersionTag,
     normalizeVoiceLocale,
     parseVoiceSpec,
     normalizeVoiceSpec,

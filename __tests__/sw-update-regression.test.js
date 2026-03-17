@@ -10,7 +10,7 @@ import {
   fetchLatestVersionFromNetwork,
   hasNewerRemoteVersion,
   activatePendingUpdateFromVersionTag,
-} from '../src/app.js';
+} from '../src/swUpdate.js';
 
 class FakeEventTarget {
   constructor() {
