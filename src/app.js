@@ -1839,6 +1839,28 @@ function applySessionLogic() {
     updateUI();
 }
 
+function getCardOrdinalInMasterDeck(card) {
+    if (!card || !Array.isArray(state.masterDeck) || state.masterDeck.length === 0) {
+        return null;
+    }
+
+    // Fast path: in most flows session cards are object references from masterDeck.
+    const referenceIndex = state.masterDeck.indexOf(card);
+    if (referenceIndex !== -1) {
+        return referenceIndex + 1;
+    }
+
+    // Fallback for rehydrated/cloned objects.
+    if (card.id) {
+        const idIndex = state.masterDeck.findIndex((candidate) => candidate?.id === card.id);
+        if (idIndex !== -1) {
+            return idIndex + 1;
+        }
+    }
+
+    return null;
+}
+
 function updateUI() {
     const deck = state.currentSessionDeck;
     const card = deck[state.currentCardIndex];
@@ -1848,7 +1870,12 @@ function updateUI() {
     ui.backLabel.textContent = card.backLabel;
     ui.frontDisplay.textContent = card.frontText;
     ui.backDisplay.textContent = card.backText;
-    ui.counter.textContent = `${state.currentCardIndex + 1} / ${deck.length}`;
+    const originalOrdinal = getCardOrdinalInMasterDeck(card);
+    const counterNumerator = originalOrdinal ?? (state.currentCardIndex + 1);
+    const counterDenominator = Array.isArray(state.masterDeck) && state.masterDeck.length > 0
+        ? state.masterDeck.length
+        : deck.length;
+    ui.counter.textContent = `${counterNumerator} / ${counterDenominator}`;
     if (ui.cardScore) ui.cardScore.textContent = `Score: ${card.score}`;
 }
 
