@@ -9,7 +9,7 @@ export const DEBUG = true;
  * General application configuration.
  */
 export const CONFIG = {
-    VERSION: "2026-03-17.1143",
+    VERSION: "2026-03-17.1150",
     // You can add more here later, like:
     // DEFAULT_SPEED: 0.9,
     // DARK_MODE: true
