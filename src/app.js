@@ -1509,6 +1509,7 @@ function setupCardListeners() {
     let startX, startY;
     let touchTimer = null;
     let isLongPress = false;
+    let isMultiTouchGesture = false;
 
     // We pass an explicit 'isMouse' flag to separate the logic
     const handleStart = (x, y, target, isMouse) => {
@@ -1593,11 +1594,38 @@ function setupCardListeners() {
 
     // --- Touch Listeners (Pixel) ---
     ui.cardInner.addEventListener('touchstart', e => {
+        if (e.touches.length !== 1) {
+            isMultiTouchGesture = true;
+            if (touchTimer) clearTimeout(touchTimer);
+            return;
+        }
+
+        isMultiTouchGesture = false;
         handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target, false);
     }, { passive: true });
 
+    ui.cardInner.addEventListener('touchmove', e => {
+        if (e.touches.length > 1) {
+            isMultiTouchGesture = true;
+            if (touchTimer) clearTimeout(touchTimer);
+        }
+    }, { passive: true });
+
     ui.cardInner.addEventListener('touchend', e => {
+        if (isMultiTouchGesture || e.changedTouches.length !== 1) {
+            if (touchTimer) clearTimeout(touchTimer);
+            if (e.touches.length === 0) {
+                isMultiTouchGesture = false;
+            }
+            return;
+        }
+
         handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target, false);
+    }, { passive: true });
+
+    ui.cardInner.addEventListener('touchcancel', () => {
+        if (touchTimer) clearTimeout(touchTimer);
+        isMultiTouchGesture = false;
     }, { passive: true });
 
     // --- Control Button Listeners (outside flip zone, direct bindings) ---
