@@ -29,8 +29,18 @@ export function showModeToast(mode) {
 
 export function updateUIRender(state, ui, getCardOrdinalInMasterDeck) {
     const deck = state.currentSessionDeck;
+    const masterTotal = Array.isArray(state.masterDeck) && state.masterDeck.length > 0
+        ? state.masterDeck.length
+        : 0;
     const card = deck[state.currentCardIndex];
-    if (!card) return;
+    if (!card) {
+        ui.counter.textContent = `0 / ${masterTotal}`;
+        if (ui.cardScore) ui.cardScore.textContent = 'Score: -';
+        if (ui.frontDisplay) ui.frontDisplay.textContent = 'No cards selected';
+        if (ui.backDisplay) ui.backDisplay.textContent = 'Adjust Search or Categories';
+        if (ui.cardInner) ui.cardInner.classList.remove('is-flipped');
+        return;
+    }
 
     ui.frontLabel.textContent = card.frontLabel;
     ui.backLabel.textContent = card.backLabel;
@@ -38,12 +48,32 @@ export function updateUIRender(state, ui, getCardOrdinalInMasterDeck) {
     ui.backDisplay.textContent = card.backText;
 
     const originalOrdinal = getCardOrdinalInMasterDeck(card);
-    const counterNumerator = originalOrdinal ?? (state.currentCardIndex + 1);
-    const counterDenominator = Array.isArray(state.masterDeck) && state.masterDeck.length > 0
-        ? state.masterDeck.length
-        : deck.length;
+    const masterIndex = originalOrdinal ?? (state.currentCardIndex + 1);
+    const currentIndex = state.currentCardIndex + 1;
+    const currentTotal = deck.length;
+    const searchActive = Boolean(ui.searchBar?.value?.trim());
+    const allCategories = new Set((state.masterDeck || []).map((candidate) => candidate.frontLabel));
+    const activeCategories = Array.isArray(state.settings?.activeCategories)
+        ? state.settings.activeCategories
+        : [];
+    const selectedCategories = new Set(activeCategories.filter((cat) => allCategories.has(cat)));
+    const categoriesSubsetActive = allCategories.size > 0
+        && selectedCategories.size > 0
+        && selectedCategories.size < allCategories.size;
 
-    ui.counter.textContent = `${counterNumerator} / ${counterDenominator}`;
+    const filtersActive = searchActive || categoriesSubsetActive;
+    if (filtersActive) {
+        const cellChars = Math.max(1, String(masterTotal).length);
+        const currentRow = `<span class="counter-current counter-row"><span class="counter-num">${currentIndex}</span><span class="counter-slash">/</span><span class="counter-den">${currentTotal}</span></span>`;
+        const masterRow = `<span class="counter-master counter-row"><span class="counter-num">${masterIndex}</span><span class="counter-slash">/</span><span class="counter-den">${masterTotal}</span></span>`;
+        ui.counter.classList.add('counter-split');
+        ui.counter.style.setProperty('--counter-cell-ch', String(cellChars));
+        ui.counter.innerHTML = `${currentRow}<span class="counter-divider" aria-hidden="true"></span>${masterRow}`;
+    } else {
+        ui.counter.classList.remove('counter-split');
+        ui.counter.style.removeProperty('--counter-cell-ch');
+        ui.counter.textContent = `${masterIndex} / ${masterTotal}`;
+    }
     if (ui.cardScore) ui.cardScore.textContent = `Score: ${card.score}`;
 }
 

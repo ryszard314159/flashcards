@@ -60,6 +60,18 @@ function createMockElement(id) {
     textContent: '',
     value: '',
     checked: false,
+    style: {
+      _properties: {},
+      setProperty(name, value) {
+        this._properties[name] = String(value);
+      },
+      removeProperty(name) {
+        delete this._properties[name];
+      },
+      getPropertyValue(name) {
+        return this._properties[name] || '';
+      },
+    },
     classList: {
       _classes: new Set(),
       add(...names) {

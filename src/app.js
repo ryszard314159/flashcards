@@ -60,6 +60,16 @@ const NEXT_ZONE_LONG_PRESS_MS = 500;
 const NEXT_ZONE_DEBUG_ALERT = false;
 const IS_LOCAL_DEVELOPMENT = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
 let isSpeechPrimed = false;
+let lastNoCardsSearchTerm = '';
+
+function notifyNoCardsSelected(searchTerm, previousSearchTerm, showToast = showToastMessage) {
+    if (!searchTerm || previousSearchTerm === searchTerm) {
+        return previousSearchTerm;
+    }
+
+    showToast('No cards selected', 1600, { centered: true });
+    return searchTerm;
+}
 
 function init() {
 
@@ -652,7 +662,12 @@ function setupEventListeners() {
         updateStateFromUI();
         save(KEYS.SETTINGS, state.settings);
         ui.settingsOverlay.classList.remove('is-visible');
-        applySessionLogic();
+        const activeSearch = ui.searchBar?.value?.trim() || '';
+        if (activeSearch) {
+            handleSearch(activeSearch);
+        } else {
+            applySessionLogic();
+        }
     });
 
     ui.modeSelect.addEventListener('change', (e) => {
@@ -1251,6 +1266,7 @@ function handleSearch(query) {
     const searchTerm = query.toLowerCase().trim();
 
     if (searchTerm === "") {
+        lastNoCardsSearchTerm = '';
         // If search is empty, go back to the normal session deck
         applySessionLogic();
         return;
@@ -1259,10 +1275,17 @@ function handleSearch(query) {
     const searchResults = filterCards(state.masterDeck, query);
 
     if (searchResults.length > 0) {
+        lastNoCardsSearchTerm = '';
         state.currentSessionDeck = searchResults;
         state.currentCardIndex = 0;
         updateUI();
     } else {
+        state.currentSessionDeck = [];
+        state.currentCardIndex = 0;
+        updateUI();
+
+        lastNoCardsSearchTerm = notifyNoCardsSelected(searchTerm, lastNoCardsSearchTerm);
+
         console.log("Search: No matches found for:", query);
     }
 }
@@ -1484,6 +1507,7 @@ export {
     selectVoiceBySpec,
     selectBestVoiceForLanguage,
     resolveVoiceSpecForSide,
+    notifyNoCardsSelected,
     _resetVoiceCache,
 };
 

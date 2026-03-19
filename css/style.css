@@ -56,7 +56,60 @@ body {
     z-index: 100;
 }
 
-#card-counter { width: 25%; font-size: 0.9rem; font-weight: bold; color: #444; }
+#card-counter {
+    width: 25%;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #444;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    line-height: 1.05;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+#card-counter.counter-split {
+    display: grid;
+    grid-template-columns: max-content;
+    justify-content: start;
+    align-content: center;
+    align-items: center;
+    row-gap: 0.06rem;
+}
+
+#card-counter .counter-current {
+    color: #2f2f2f;
+}
+
+#card-counter .counter-row {
+    display: grid;
+    grid-template-columns: calc(var(--counter-cell-ch, 1) * 1ch) 0.8ch calc(var(--counter-cell-ch, 1) * 1ch);
+    align-items: center;
+}
+
+#card-counter .counter-num {
+    text-align: center;
+}
+
+#card-counter .counter-slash {
+    text-align: center;
+}
+
+#card-counter .counter-den {
+    text-align: center;
+}
+
+#card-counter .counter-divider {
+    width: 100%;
+    border-top: 1px solid #9a9a9a;
+    margin: 0.12rem 0;
+}
+
+#card-counter .counter-master {
+    color: #9b9b9b;
+}
 .search-container { flex-grow: 1; padding: 0 0.5rem; }
 .search-container input {
     width: 100%;

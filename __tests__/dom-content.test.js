@@ -3,6 +3,8 @@
  * Tests for DOM content updates: card display, counters, text rendering
  */
 
+import { updateUIRender } from '../src/ui.js';
+
 describe('DOM: Content Updates', () => {
   let mockUI;
   let mockState;
@@ -15,9 +17,18 @@ describe('DOM: Content Updates', () => {
       frontLabel: document.getElementById('frontLabel'),
       backLabel: document.getElementById('backLabel'),
       counter: document.getElementById('card-counter'),
+      searchBar: document.getElementById('searchBar'),
+      cardInner: document.getElementById('cardInner'),
+      cardScore: createCardScoreElement(),
       versionTag: document.getElementById('versionTag'),
       categoryList: document.getElementById('categoryList'),
     };
+
+    mockUI.searchBar.value = '';
+    mockUI.counter.textContent = '';
+    mockUI.counter.innerHTML = '';
+    mockUI.counter.classList.remove('counter-split');
+    mockUI.cardInner.classList.remove('is-flipped');
 
     // Setup mock state with sample deck
     mockState = {
@@ -38,9 +49,39 @@ describe('DOM: Content Updates', () => {
           backLabel: 'Spanish',
         },
       ],
-      masterDeck: [],
+      masterDeck: [
+        {
+          id: '1',
+          frontText: 'hello',
+          backText: 'hola',
+          frontLabel: 'English',
+          backLabel: 'Spanish',
+          score: 0,
+        },
+        {
+          id: '2',
+          frontText: 'goodbye',
+          backText: 'adiós',
+          frontLabel: 'English',
+          backLabel: 'Spanish',
+          score: 0,
+        },
+      ],
+      settings: {
+        activeCategories: ['English'],
+      },
     };
   });
+
+  function createCardScoreElement() {
+    return {
+      textContent: '',
+      classList: {
+        add() {},
+        remove() {},
+      },
+    };
+  }
 
   // ============================================================================
   // Card Display Tests
@@ -167,6 +208,42 @@ describe('DOM: Content Updates', () => {
       deckSize = mockState.currentSessionDeck.length;
       mockUI.counter.textContent = `${mockState.currentCardIndex + 1} / ${deckSize}`;
       expect(mockUI.counter.textContent).toBe('1 / 3');
+    });
+
+    test('updateUIRender shows master-only counter when no filters are active', () => {
+      mockState.settings.activeCategories = ['English'];
+      mockState.currentSessionDeck = [...mockState.masterDeck];
+      mockUI.searchBar.value = '';
+
+      updateUIRender(mockState, mockUI, (card) => mockState.masterDeck.indexOf(card) + 1);
+
+      expect(mockUI.counter.textContent).toBe('1 / 2');
+      expect(mockUI.counter.classList.contains('counter-split')).toBe(false);
+    });
+
+    test('updateUIRender shows split counter when search filter is active', () => {
+      mockState.currentSessionDeck = [mockState.masterDeck[1]];
+      mockUI.searchBar.value = 'good';
+
+      updateUIRender(mockState, mockUI, (card) => mockState.masterDeck.indexOf(card) + 1);
+
+      expect(mockUI.counter.classList.contains('counter-split')).toBe(true);
+      expect(mockUI.counter.innerHTML).toContain('counter-current');
+      expect(mockUI.counter.innerHTML).toContain('1</span><span class="counter-slash">/</span><span class="counter-den">1');
+      expect(mockUI.counter.innerHTML).toContain('2</span><span class="counter-slash">/</span><span class="counter-den">2');
+    });
+
+    test('updateUIRender shows empty-state counter and messages when no cards are selected', () => {
+      mockState.currentSessionDeck = [];
+      mockUI.searchBar.value = 'yoyvoyvo';
+      mockUI.cardInner.classList.add('is-flipped');
+
+      updateUIRender(mockState, mockUI, () => null);
+
+      expect(mockUI.counter.textContent).toBe('0 / 2');
+      expect(mockUI.frontDisplay.textContent).toBe('No cards selected');
+      expect(mockUI.backDisplay.textContent).toBe('Adjust Search or Categories');
+      expect(mockUI.cardInner.classList.contains('is-flipped')).toBe(false);
     });
   });
 
