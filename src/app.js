@@ -204,7 +204,7 @@ function init() {
         selectAllBtn: document.getElementById('selectAllBtn'),
         selectNoneBtn: document.getElementById('selectNoneBtn'),
         sessionSize: document.getElementById('sessionSize'),
-        historySize: document.getElementById('historySizeInput'),
+        historySize: document.getElementById('historySize'),
         settingsBtn: document.getElementById('settingsBtn'),
         settingsOverlay: document.getElementById('settingsOverlay'),
         speechRateInput: document.getElementById('speechRateInput'),
@@ -257,6 +257,10 @@ function init() {
     state.settings = { ...state.settings, ...load(KEYS.SETTINGS) };
     state.settings.frontVoice = normalizeVoiceSpec(state.settings.frontVoice) || AUTO_VOICE_VALUE;
     state.settings.backVoice = normalizeVoiceSpec(state.settings.backVoice) || AUTO_VOICE_VALUE;
+    // Migrate corrupted historySize: a previous bug always saved 0
+    if (!state.settings.historySize) {
+        state.settings.historySize = HISTORY_SIZE.default;
+    }
     // state.masterDeck = { ...state.masterDeck, ...load(KEYS.DECK) };
     // state.masterDeck = load(KEYS.DECK) || state.masterDeck;
     const savedDeck = load(KEYS.DECK);
