@@ -236,6 +236,124 @@ body {
 }
 
 .audio-btn { font-size: 2rem; border: none; background: none; cursor: pointer; }
+.tutor-btn { font-size: 1.6rem; border: none; background: none; cursor: pointer; transition: opacity 0.2s; }
+
+/* ---------- Tutor chat panel ---------- */
+.tutor-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(95vw, 440px);
+    height: min(85vh, 640px);
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+}
+.tutor-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: var(--color-primary, #3b82f6);
+    color: #fff;
+}
+.tutor-header h3 { margin: 0; flex: 1; font-size: 1rem; }
+.tutor-header button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 0.3rem;
+}
+.tutor-clear-btn { opacity: 0.7; }
+.tutor-clear-btn:hover { opacity: 1; }
+
+.tutor-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.tutor-msg {
+    max-width: 85%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+.tutor-msg.user {
+    align-self: flex-end;
+    background: var(--color-primary, #3b82f6);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+.tutor-msg.assistant {
+    align-self: flex-start;
+    background: #f0f0f0;
+    color: #333;
+    border-bottom-left-radius: 4px;
+    cursor: pointer;
+}
+.tutor-msg.assistant:hover { background: #e5e5e5; }
+.tutor-msg.error {
+    align-self: center;
+    background: #fff0f0;
+    color: #c33;
+    font-size: 0.85rem;
+}
+.tutor-msg.typing {
+    align-self: flex-start;
+    background: #f0f0f0;
+    color: #999;
+    font-style: italic;
+}
+
+.tutor-input-row {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    border-top: 1px solid #e0e0e0;
+    background: #fafafa;
+}
+.tutor-input-row input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+}
+.tutor-input-row input:focus { border-color: var(--color-primary, #3b82f6); }
+.tutor-mic-btn,
+.tutor-send-btn {
+    border: none;
+    background: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0 0.3rem;
+}
+.tutor-mic-btn.listening { animation: mic-pulse 0.8s ease-in-out infinite; }
+
+@keyframes mic-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.3); }
+}
+@keyframes mic-flash-green {
+    0%   { background: #4caf50; border-radius: 50%; }
+    100% { background: transparent; }
+}
+@keyframes mic-flash-amber {
+    0%   { background: #ff9800; border-radius: 50%; }
+    100% { background: transparent; }
+}
+@keyframes mic-flash-red {
+    0%   { background: #f44336; border-radius: 50%; }
+    100% { background: transparent; }
+}
 
 .card-controls {
     flex-shrink: 0;
@@ -247,7 +365,14 @@ body {
     background: #fafafa;
     border-top: 1px solid var(--color-smoke);
 }
-.card-controls .audio-btn { grid-column: 2; grid-row: 1; justify-self: center; }
+.card-controls .audio-mic-group {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 .card-controls .freq-down  { grid-column: 1; grid-row: 1 / span 2; align-self: center; justify-self: start; }
 .card-controls .freq-up    { grid-column: 3; grid-row: 1 / span 2; align-self: center; justify-self: end; }
 .card-score {
@@ -434,6 +559,24 @@ body {
     font-weight: 500;
     color: var(--color-ink);
     flex-grow: 1;
+}
+
+/* Backend toggle groups */
+.backend-group {
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.5rem;
+}
+.backend-fields {
+    margin-top: 0.5rem;
+    padding-left: 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.backend-group:has(input[type="checkbox"]:not(:checked)) .backend-fields {
+    display: none;
 }
 
 /* Section headings within settings */

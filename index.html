@@ -63,7 +63,10 @@
 
             </div>
             <div class="card-controls">
-                <button class="audio-btn" id="audioBtn">🔊</button>
+                <div class="audio-mic-group">
+                    <button class="audio-btn" id="audioBtn">🔊</button>
+                    <button class="tutor-btn" id="micBtn" title="Open Spanish tutor chat">💬</button>
+                </div>
                 <button class="freq-btn freq-down" id="freqDown">⬇️</button>
                 <button class="freq-btn freq-up" id="freqUp">⬆️</button>
                 <div class="card-score" id="cardScore">–</div>
@@ -254,6 +257,59 @@
                         <span>Auto-play audio when flipping to Back</span>
                     </label>
                 </div>
+
+                <div class="settings-section">
+                    <h4>AI Tutor</h4>
+                    <p class="setting-note">Enable the backends you want. They are tried top-to-bottom.</p>
+
+                    <div class="backend-group">
+                        <div class="setting-item">
+                            <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
+                                <input type="checkbox" id="enableChromeAI">
+                                <span>Built-in AI (Chrome)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="backend-group">
+                        <div class="setting-item">
+                            <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
+                                <input type="checkbox" id="enableOllama" checked>
+                                <span>Ollama (local)</span>
+                            </label>
+                        </div>
+                        <div class="backend-fields" id="ollamaFields">
+                            <div class="setting-item">
+                                <label for="ollamaUrlInput">URL</label>
+                                <input type="text" id="ollamaUrlInput" placeholder="http://localhost:11434" autocomplete="off">
+                            </div>
+                            <div class="setting-item">
+                                <label for="ollamaModelInput">Model</label>
+                                <input type="text" id="ollamaModelInput" placeholder="gemma3:4b" autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="backend-group">
+                        <div class="setting-item">
+                            <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
+                                <input type="checkbox" id="enableOpenAI">
+                                <span>OpenAI</span>
+                            </label>
+                        </div>
+                        <div class="backend-fields" id="openaiFields">
+                            <div class="setting-item">
+                                <label for="openaiModelInput">Model</label>
+                                <input type="text" id="openaiModelInput" placeholder="gpt-4o-mini" autocomplete="off">
+                            </div>
+                            <div class="setting-item">
+                                <label for="apiKeyInput">API Key</label>
+                                <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off">
+                            </div>
+                            <p class="setting-note">Key is kept in session memory only — cleared when you close the tab.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="settings-actions">
@@ -271,6 +327,22 @@
             </header>
             <div class="modal-body">
                 </div>
+        </div>
+    </div>
+
+    <div id="tutorOverlay" class="modal-overlay">
+        <div class="tutor-panel">
+            <header class="tutor-header">
+                <h3>🇪🇸 Spanish Tutor</h3>
+                <button id="tutorClear" class="tutor-clear-btn" title="New conversation">🗑️</button>
+                <button id="closeTutor">✕</button>
+            </header>
+            <div id="tutorMessages" class="tutor-messages"></div>
+            <div class="tutor-input-row">
+                <input type="text" id="tutorInput" placeholder="Ask me anything in English or Spanish…" autocomplete="off">
+                <button id="tutorMic" class="tutor-mic-btn" title="Speak">🎤</button>
+                <button id="tutorSend" class="tutor-send-btn" title="Send">➤</button>
+            </div>
         </div>
     </div>
 

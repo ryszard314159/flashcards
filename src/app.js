@@ -40,6 +40,8 @@ import { SESSION_SIZE } from './state.js';
 import { TEMPERATURE } from './state.js';
 import { HISTORY_SIZE } from './state.js';
 import { pickWeightedCard, generateSessionDeck, calculateProbabilities, filterCards, flipDeck, applyScoreChange } from './srs.js';
+import { isRecognitionSupported, listenForSpeech } from './recognition.js';
+import { createConversation, isChromeAIAvailable, isOllamaAvailable } from './tutor.js';
 import {
     markUpdateAvailable,
     hasNewerRemoteVersion,
@@ -52,6 +54,9 @@ import {
 
 let ui = {};
 let isNormalizingPhraseSelection = false;
+
+const TUTOR_API_KEY_STORAGE = 'tutorApiKey';
+const tutorConversation = createConversation();
 let swRegistration = null;
 let refreshUpdateStatusFn = null;
 let nextZoneLongPressTimer = null;
@@ -213,10 +218,25 @@ function init() {
         // srsFactorVal: document.getElementById('srsFactorVal'),
         tempInput: document.getElementById('tempInput'),
         audioBtn: document.getElementById('audioBtn'),
+        micBtn: document.getElementById('micBtn'),
         cardScore: document.getElementById('cardScore'),
         freqDown: document.getElementById('freqDown'),
         freqUp: document.getElementById('freqUp'),
         versionTag: document.getElementById('versionTag'),
+        apiKeyInput: document.getElementById('apiKeyInput'),
+        enableChromeAI: document.getElementById('enableChromeAI'),
+        enableOllama: document.getElementById('enableOllama'),
+        enableOpenAI: document.getElementById('enableOpenAI'),
+        ollamaUrlInput: document.getElementById('ollamaUrlInput'),
+        ollamaModelInput: document.getElementById('ollamaModelInput'),
+        openaiModelInput: document.getElementById('openaiModelInput'),
+        tutorOverlay: document.getElementById('tutorOverlay'),
+        tutorMessages: document.getElementById('tutorMessages'),
+        tutorInput: document.getElementById('tutorInput'),
+        tutorSend: document.getElementById('tutorSend'),
+        tutorMic: document.getElementById('tutorMic'),
+        tutorClear: document.getElementById('tutorClear'),
+        closeTutor: document.getElementById('closeTutor'),
     };
 
     assertRequiredUI();
@@ -643,6 +663,21 @@ function setupEventListeners() {
         if (e.target.id === 'closeHelp' || e.target === ui.helpOverlay) {
             toggleHelpModal(false);
         }
+    });
+
+    // Tutor Chat
+    ui.closeTutor?.addEventListener('click', () => closeTutorChat());
+    ui.tutorOverlay?.addEventListener('click', (e) => {
+        if (e.target === ui.tutorOverlay) closeTutorChat();
+    });
+    ui.tutorSend?.addEventListener('click', () => sendTutorMessage());
+    ui.tutorInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTutorMessage(); }
+    });
+    ui.tutorMic?.addEventListener('click', () => handleTutorMic());
+    ui.tutorClear?.addEventListener('click', () => {
+        tutorConversation.clear();
+        if (ui.tutorMessages) ui.tutorMessages.innerHTML = '';
     });
 
     // Settings Modal
@@ -1194,6 +1229,7 @@ function setupCardListeners() {
     ui.freqDown?.addEventListener('click', () => handleFrequencyChange(-1));
     ui.freqUp?.addEventListener('click', () => handleFrequencyChange(1));
     ui.audioBtn?.addEventListener('click', () => playAudio());
+    ui.micBtn?.addEventListener('click', () => openTutorChat());
 
     ui.cardInner.dataset.initialized = 'true';
 }
@@ -1342,6 +1378,13 @@ function syncSettingsToUI() {
     if (ui.autoPlayBackOnFlip) ui.autoPlayBackOnFlip.checked = Boolean(state.settings.autoPlayBackOnFlip);
     if (ui.frontVoiceSearch) ui.frontVoiceSearch.value = '';
     if (ui.backVoiceSearch) ui.backVoiceSearch.value = '';
+    if (ui.apiKeyInput) ui.apiKeyInput.value = sessionStorage.getItem(TUTOR_API_KEY_STORAGE) || '';
+    if (ui.enableChromeAI) ui.enableChromeAI.checked = state.settings.enableChromeAI !== false;
+    if (ui.enableOllama) ui.enableOllama.checked = state.settings.enableOllama !== false;
+    if (ui.enableOpenAI) ui.enableOpenAI.checked = Boolean(state.settings.enableOpenAI);
+    if (ui.ollamaUrlInput) ui.ollamaUrlInput.value = state.settings.ollamaUrl || '';
+    if (ui.ollamaModelInput) ui.ollamaModelInput.value = state.settings.ollamaModel || '';
+    if (ui.openaiModelInput) ui.openaiModelInput.value = state.settings.openaiModel || '';
     syncVoiceSelectors();
     updateNextZoneModeIcon();
 }
@@ -1356,6 +1399,19 @@ function updateStateFromUI() {
     state.settings.autoPlayBackOnFlip = Boolean(ui.autoPlayBackOnFlip.checked);
     state.settings.frontVoice = normalizeVoiceSpec(ui.frontVoiceSelect?.value) || AUTO_VOICE_VALUE;
     state.settings.backVoice = normalizeVoiceSpec(ui.backVoiceSelect?.value) || AUTO_VOICE_VALUE;
+    state.settings.enableChromeAI = Boolean(ui.enableChromeAI?.checked);
+    state.settings.enableOllama = Boolean(ui.enableOllama?.checked);
+    state.settings.enableOpenAI = Boolean(ui.enableOpenAI?.checked);
+    state.settings.ollamaUrl = ui.ollamaUrlInput?.value?.trim() || '';
+    state.settings.ollamaModel = ui.ollamaModelInput?.value?.trim() || '';
+    state.settings.openaiModel = ui.openaiModelInput?.value?.trim() || '';
+    // API key stored separately (not in settings object)
+    const keyVal = ui.apiKeyInput?.value?.trim() || '';
+    if (keyVal) {
+        sessionStorage.setItem(TUTOR_API_KEY_STORAGE, keyVal);
+    } else {
+        sessionStorage.removeItem(TUTOR_API_KEY_STORAGE);
+    }
 }
 
 function refreshCategoryUI() {
@@ -1495,6 +1551,115 @@ function playAudio() {
     }
 
     window.speechSynthesis.speak(utterance);
+}
+
+// ---------- Tutor Chat ----------
+
+async function openTutorChat() {
+    const s = state.settings;
+    const apiKey = sessionStorage.getItem(TUTOR_API_KEY_STORAGE);
+    const ollamaUrl = s.ollamaUrl || undefined;
+    const useChromeAI = s.enableChromeAI !== false;
+    const useOllama = s.enableOllama !== false;
+    const useOpenAI = Boolean(s.enableOpenAI);
+
+    let anyAvailable = false;
+    if (useChromeAI && (await isChromeAIAvailable()) === 'readily') anyAvailable = true;
+    if (!anyAvailable && useOllama && await isOllamaAvailable(ollamaUrl)) anyAvailable = true;
+    if (!anyAvailable && useOpenAI && apiKey) anyAvailable = true;
+
+    if (!anyAvailable) {
+        showToastMessage('No AI backend available. Enable one in Settings and make sure it\'s running.', 3500, { centered: true });
+        return;
+    }
+    ui.tutorOverlay?.classList.add('is-visible');
+    ui.tutorInput?.focus();
+}
+
+function closeTutorChat() {
+    ui.tutorOverlay?.classList.remove('is-visible');
+}
+
+function appendTutorMsg(role, text) {
+    const div = document.createElement('div');
+    div.className = `tutor-msg ${role}`;
+    div.textContent = text;
+    // Tap assistant messages to hear them via TTS
+    if (role === 'assistant') {
+        div.addEventListener('click', () => {
+            if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'es';
+                const voice = selectBestVoiceForLanguage('es');
+                if (voice) utter.voice = voice;
+                utter.rate = parseFloat(state.settings.speechRate) || 1.0;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utter);
+            }
+        });
+    }
+    ui.tutorMessages?.appendChild(div);
+    ui.tutorMessages?.scrollTo(0, ui.tutorMessages.scrollHeight);
+    return div;
+}
+
+async function sendTutorMessage() {
+    const text = ui.tutorInput?.value?.trim();
+    if (!text) return;
+    const apiKey = sessionStorage.getItem(TUTOR_API_KEY_STORAGE);
+    ui.tutorInput.value = '';
+    appendTutorMsg('user', text);
+    const typing = appendTutorMsg('typing', '…');
+
+    try {
+        const reply = await tutorConversation.ask(text, apiKey, {
+            enableChromeAI: state.settings.enableChromeAI !== false,
+            enableOllama: state.settings.enableOllama !== false,
+            enableOpenAI: Boolean(state.settings.enableOpenAI),
+            ollamaUrl: state.settings.ollamaUrl || undefined,
+            ollamaModel: state.settings.ollamaModel || undefined,
+            openaiModel: state.settings.openaiModel || undefined,
+        });
+        typing.remove();
+        appendTutorMsg('assistant', reply);
+        // Auto-speak the reply in Spanish
+        if (window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+            const utter = new SpeechSynthesisUtterance(reply);
+            utter.lang = 'es';
+            const voice = selectBestVoiceForLanguage('es');
+            if (voice) utter.voice = voice;
+            utter.rate = parseFloat(state.settings.speechRate) || 1.0;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utter);
+        }
+    } catch (err) {
+        typing.remove();
+        const msg = err?.message || 'Request failed';
+        appendTutorMsg('error', msg);
+    }
+}
+
+async function handleTutorMic() {
+    if (!isRecognitionSupported()) {
+        showToastMessage('Speech recognition not supported in this browser', 2000, { centered: true });
+        return;
+    }
+    ui.tutorMic?.classList.add('listening');
+    try {
+        const transcripts = await listenForSpeech('es-ES');
+        ui.tutorMic?.classList.remove('listening');
+        if (transcripts?.length) {
+            ui.tutorInput.value = transcripts[0];
+            sendTutorMessage();
+        }
+    } catch (err) {
+        ui.tutorMic?.classList.remove('listening');
+        if (err?.error === 'no-speech') {
+            showToastMessage('No speech detected — try again', 2000, { centered: true });
+        } else if (err?.error === 'not-allowed') {
+            showToastMessage('Microphone access denied', 2500, { centered: true });
+        }
+    }
 }
 
 // Export small pure/update helpers for regression tests.
