@@ -1,4 +1,9 @@
+# comments start with #
+# next line specifies audio language for Front and Back of the cards in the deck
+& Front: Google US English (en-US); Back: Google español (es-ES)
+# title for the deck starts with "**"
 ** TEST
+# category starts with "*"
 * Arts & Museums | Arte y Museos
 1:A: Is there an audio guide? | ¿Hay una audioguía?
 2:A: Who is the artist? | ¿Quién es el artista?
