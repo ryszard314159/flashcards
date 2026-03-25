@@ -55,7 +55,7 @@ import {
 let ui = {};
 let isNormalizingPhraseSelection = false;
 
-const TUTOR_API_KEY_STORAGE = 'tutorApiKey';
+let tutorApiKey = null;
 const tutorConversation = createConversation();
 let swRegistration = null;
 let refreshUpdateStatusFn = null;
@@ -1386,7 +1386,7 @@ function syncSettingsToUI() {
     if (ui.autoPlayBackOnFlip) ui.autoPlayBackOnFlip.checked = Boolean(state.settings.autoPlayBackOnFlip);
     if (ui.frontVoiceSearch) ui.frontVoiceSearch.value = '';
     if (ui.backVoiceSearch) ui.backVoiceSearch.value = '';
-    if (ui.apiKeyInput) ui.apiKeyInput.value = sessionStorage.getItem(TUTOR_API_KEY_STORAGE) || '';
+    if (ui.apiKeyInput) ui.apiKeyInput.value = tutorApiKey || '';
     if (ui.enableChromeAI) ui.enableChromeAI.checked = state.settings.enableChromeAI !== false;
     if (ui.enableOllama) ui.enableOllama.checked = state.settings.enableOllama !== false;
     if (ui.enableOpenAI) ui.enableOpenAI.checked = Boolean(state.settings.enableOpenAI);
@@ -1415,11 +1415,7 @@ function updateStateFromUI() {
     state.settings.openaiModel = ui.openaiModelInput?.value?.trim() || '';
     // API key stored separately (not in settings object)
     const keyVal = ui.apiKeyInput?.value?.trim() || '';
-    if (keyVal) {
-        sessionStorage.setItem(TUTOR_API_KEY_STORAGE, keyVal);
-    } else {
-        sessionStorage.removeItem(TUTOR_API_KEY_STORAGE);
-    }
+    tutorApiKey = keyVal || null;
 }
 
 function refreshCategoryUI() {
@@ -1565,7 +1561,7 @@ function playAudio() {
 
 async function openTutorChat() {
     const s = state.settings;
-    const apiKey = sessionStorage.getItem(TUTOR_API_KEY_STORAGE);
+    const apiKey = tutorApiKey;
     const ollamaUrl = s.ollamaUrl || undefined;
     const useChromeAI = s.enableChromeAI !== false;
     const useOllama = s.enableOllama !== false;
@@ -1614,7 +1610,7 @@ function appendTutorMsg(role, text) {
 async function sendTutorMessage() {
     const text = ui.tutorInput?.value?.trim();
     if (!text) return;
-    const apiKey = sessionStorage.getItem(TUTOR_API_KEY_STORAGE);
+    const apiKey = tutorApiKey;
     ui.tutorInput.value = '';
     appendTutorMsg('user', text);
     const typing = appendTutorMsg('typing', '…');

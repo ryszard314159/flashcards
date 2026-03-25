@@ -163,14 +163,19 @@ export function loadAvailableVoices(onVoicesUpdated = () => {}) {
         return;
     }
 
+    if (voicesLoaded) {
+        onVoicesUpdated();
+        return;
+    }
+
+    // A retry is already in flight — don't start a second chain.
+    if (voiceRefreshTimer) return;
+
     const updateVoiceList = (attempt = 0) => {
         availableVoices = window.speechSynthesis.getVoices();
         if (availableVoices.length > 0) {
             voicesLoaded = true;
-            if (voiceRefreshTimer) {
-                clearTimeout(voiceRefreshTimer);
-                voiceRefreshTimer = null;
-            }
+            voiceRefreshTimer = null;
             if (DEBUG) {
                 console.log(
                     `[Speech] Loaded ${availableVoices.length} voices:`,
@@ -183,11 +188,6 @@ export function loadAvailableVoices(onVoicesUpdated = () => {}) {
 
         onVoicesUpdated();
     };
-
-    if (!voicesLoaded && voiceRefreshTimer) {
-        clearTimeout(voiceRefreshTimer);
-        voiceRefreshTimer = null;
-    }
 
     updateVoiceList();
     window.speechSynthesis.onvoiceschanged = () => updateVoiceList();

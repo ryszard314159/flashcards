@@ -8,7 +8,17 @@ export const KEYS = {
 };
 
 // --- Storage Logic ---
-export const save = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+export const save = (key, data) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+            console.error('[Storage] localStorage quota exceeded — data not saved.');
+        } else {
+            throw e;
+        }
+    }
+};
 
 export const load = (key) => {
     try {
@@ -66,6 +76,15 @@ export async function fetchRemoteDeckList(subPath) {
  * NEW: Fetches raw text from any URL (GitHub Raw, Gists, etc.)
  */
 export async function fetchTextFromUrl(url) {
+    let parsed;
+    try {
+        parsed = new URL(url);
+    } catch {
+        throw new Error("Invalid URL");
+    }
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        throw new Error(`URL scheme '${parsed.protocol}' is not allowed`);
+    }
     const response = await fetch(url);
     if (!response.ok) throw new Error("Failed to download file");
     const text = await response.text();
