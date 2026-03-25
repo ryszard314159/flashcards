@@ -10,6 +10,8 @@ Immersive Flashcards — a distraction-free, offline-ready PWA for spaced repeti
 - Served locally: `python3 -m http.server 8080`
 - Tested on Linux desktop + Pixel phone (LAN at `192.168.1.29:8080`)
 
+## Deck format
+
 ## Key Files
 | File | Purpose |
 |------|---------|

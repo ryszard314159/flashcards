@@ -1027,7 +1027,11 @@ async function initRemoteMenu(path = REPO_CONFIG.basePath) {
             }
         });
     } catch (err) {
-        ui.remoteExamplesList.innerHTML = `<p class="hint" style="color: red;">Error: ${err.message}</p>`;
+        const errP = document.createElement('p');
+        errP.className = 'hint';
+        errP.style.color = 'red';
+        errP.textContent = `Error: ${err.message}`;
+        ui.remoteExamplesList.appendChild(errP);
     }
 }
 
